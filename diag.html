@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Диагностика системы Коганэ</title>
+  <!-- Стили только внутренние: страница обязана работать,
+       даже если основной CSS не загружается. -->
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #06150d;
+      color: #c6e953;
+      font: 14px/1.6 "Consolas", "Courier New", monospace;
+      padding: 20px;
+    }
+    h1 { font-size: 20px; margin-bottom: 4px; letter-spacing: .1em; }
+    .sub { color: #7a9440; font-size: 12px; margin-bottom: 20px; }
+    .row {
+      display: grid;
+      grid-template-columns: 26px 1fr;
+      gap: 10px;
+      padding: 7px 10px;
+      border-bottom: 1px solid rgba(198,233,83,.14);
+      align-items: start;
+    }
+    .row b { font-weight: normal; color: #e2fa7d; }
+    .row small { display: block; color: #7a9440; font-size: 12px; word-break: break-word; }
+    .ok   { color: #7dff3c; }
+    .bad  { color: #ff5c47; }
+    .warn { color: #ffc247; }
+    .verdict {
+      margin: 20px 0;
+      padding: 14px;
+      border: 2px solid #c6e953;
+      font-size: 15px;
+      line-height: 1.7;
+    }
+    .verdict.bad { border-color: #ff5c47; color: #ffb3a8; }
+    .verdict.ok  { border-color: #7dff3c; }
+    button {
+      margin: 4px 6px 4px 0;
+      padding: 10px 18px;
+      background: none;
+      border: 2px solid #c6e953;
+      color: #c6e953;
+      font: inherit;
+      cursor: pointer;
+      letter-spacing: .08em;
+    }
+    button:hover { background: #c6e953; color: #06150d; }
+    textarea {
+      width: 100%;
+      height: 220px;
+      margin-top: 12px;
+      padding: 10px;
+      background: #04100a;
+      color: #c6e953;
+      border: 1px solid rgba(198,233,83,.3);
+      font: 12px/1.5 monospace;
+    }
+    .sect { margin-top: 22px; font-size: 12px; letter-spacing: .18em; color: #7a9440; }
+  </style>
+</head>
+
+<body>
+  <h1>ДИАГНОСТИКА СИСТЕМЫ КОГАНЭ</h1>
+  <div class="sub">検査 // Проверка окружения, файлов и хранилища</div>
+
+  <div id="verdict" class="verdict">Проверка выполняется…</div>
+
+  <div id="out"></div>
+
+  <div class="sect">ОТЧЁТ ДЛЯ ОТПРАВКИ</div>
+  <button id="copy" type="button">Скопировать отчёт</button>
+  <button id="again" type="button">Проверить заново</button>
+  <button id="home" type="button">На сайт →</button>
+  <textarea id="report" readonly></textarea>
+
+<script>
+(function () {
+  var out = document.getElementById('out');
+  var lines = [];
+  var problems = [];
+  var errors = [];
+
+  window.addEventListener('error', function (e) {
+    errors.push('ОШИБКА: ' + e.message + ' @ ' + (e.filename || '?') + ':' + (e.lineno || '?'));
+  });
+  window.addEventListener('unhandledrejection', function (e) {
+    errors.push('ОТКАЗ ПРОМИСА: ' + ((e.reason && e.reason.message) || e.reason));
+  });
+
+  function add(state, title, detail) {
+    var mark = state === 'ok' ? '✓' : (state === 'bad' ? '✕' : '!');
+    var el = document.createElement('div');
+    el.className = 'row';
+    el.innerHTML = '<span class="' + state + '">' + mark + '</span>'
+      + '<span><b>' + title + '</b>'
+      + (detail ? '<small>' + String(detail).replace(/</g, '&lt;') + '</small>' : '')
+      + '</span>';
+    out.appendChild(el);
+    lines.push(mark + ' ' + title + (detail ? ' — ' + detail : ''));
+    if (state === 'bad') problems.push(title);
+  }
+
+  function section(name) {
+    var el = document.createElement('div');
+    el.className = 'sect';
+    el.textContent = name;
+    out.appendChild(el);
+    lines.push('');
+    lines.push('--- ' + name + ' ---');
+  }
+
+  /* ============ 1. Браузер ============ */
+  function checkBrowser() {
+    section('БРАУЗЕР И ОКРУЖЕНИЕ');
+    add('ok', 'Адрес страницы', location.href);
+    add('ok', 'Браузер', navigator.userAgent);
+    add('ok', 'Язык / платформа', navigator.language + ' / ' + (navigator.platform || '?'));
+    add('ok', 'Окно', window.innerWidth + '×' + window.innerHeight);
+
+    var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    add(reduced ? 'warn' : 'ok', 'Анимации в системе',
+      reduced ? 'ОТКЛЮЧЕНЫ в настройках ОС — анимации будут мгновенными' : 'разрешены');
+
+    add(navigator.cookieEnabled ? 'ok' : 'bad', 'Cookie разрешены',
+      navigator.cookieEnabled ? 'да' : 'НЕТ — часто вместе с этим блокируется и хранилище');
+  }
+
+  /* ============ 2. Хранилище (критично) ============ */
+  function checkStorage() {
+    section('ХРАНИЛИЩЕ ДАННЫХ (КРИТИЧНО)');
+    try {
+      var key = '__kogane_diag__';
+      localStorage.setItem(key, 'проверка-123');
+      var back = localStorage.getItem(key);
+      localStorage.removeItem(key);
+
+      if (back === 'проверка-123') {
+        add('ok', 'localStorage: запись и чтение', 'работает');
+      } else {
+        add('bad', 'localStorage: записалось, но прочиталось другое', 'получено: ' + back);
+      }
+    } catch (e) {
+      add('bad', 'localStorage НЕДОСТУПЕН', e.name + ': ' + e.message
+        + ' — без него система работать не может: в нём хранятся аккаунты и вход');
+    }
+
+    try {
+      sessionStorage.setItem('__d__', '1');
+      sessionStorage.removeItem('__d__');
+      add('ok', 'sessionStorage', 'работает');
+    } catch (e) {
+      add('warn', 'sessionStorage недоступен', e.message);
+    }
+
+    // Сколько уже записано системой
+    try {
+      var db = localStorage.getItem('kogane:db:v1');
+      var session = localStorage.getItem('kogane:session');
+      add('ok', 'База системы в браузере',
+        db ? ('есть, ' + db.length + ' символов, аккаунтов: '
+              + ((JSON.parse(db).users || []).length)) : 'ещё не создана (это нормально при первом заходе)');
+      add('ok', 'Активная сессия', session ? session : 'нет (не выполнен вход)');
+    } catch (e) {
+      add('bad', 'База системы повреждена', e.message);
+    }
+  }
+
+  /* ============ 3. Файлы сайта ============ */
+  // marker — строка, которая есть ТОЛЬКО в свежей версии файла.
+  // Если файл отдаётся без неё, значит сервер или CDN держат старую копию.
+  var FILES = [
+    { path: 'index.html',              marker: 'setTimeout(leave, 500)', why: 'аварийный выход с экрана подключения' },
+    { path: 'js/modules/connect.js',   marker: '__koganeConnect',        why: 'обработчик кнопки «Продолжить»' },
+    { path: 'js/pages/auth.js',        marker: 'function regStep',       why: 'пошаговая регистрация' },
+    { path: 'js/core/store.js',        marker: 'checkAdminCode',         why: 'секретный код администрации' },
+    { path: 'css/main.css',            marker: 'variables.css?v=6',      why: 'версии стилей' },
+    { path: 'pages/system.html' },
+    { path: 'pages/application.html' },
+    { path: 'pages/pending.html' },
+    { path: 'pages/admin.html' }
+  ];
+
+  function checkFiles(done) {
+    section('ФАЙЛЫ САЙТА И ИХ ВЕРСИЯ');
+    var left = FILES.length;
+    var results = {};
+
+    FILES.forEach(function (f) {
+      var t0 = Date.now();
+      // Обычный адрес — ровно то, что получает браузер при заходе на сайт
+      fetch(f.path, { cache: 'no-store' })
+        .then(function (r) {
+          return r.text().then(function (text) {
+            results[f.path] = {
+              status: r.status,
+              type: r.headers.get('content-type'),
+              age: r.headers.get('age'),
+              cache: r.headers.get('cache-control'),
+              ms: Date.now() - t0,
+              fresh: f.marker ? text.indexOf(f.marker) !== -1 : null,
+              len: text.length
+            };
+          });
+        })
+        .catch(function (e) {
+          results[f.path] = { status: 'СЕТЬ', type: e.message, ms: Date.now() - t0 };
+        })
+        .then(function () {
+          if (--left) return;
+
+          var stale = [];
+          FILES.forEach(function (f) {
+            var r = results[f.path];
+            var detail = 'код ' + r.status + ' · ' + (r.type || '—') + ' · ' + r.ms + ' мс'
+              + (r.age ? ' · возраст в кеше CDN: ' + r.age + ' c' : '');
+
+            if (r.status !== 200) { add('bad', f.path, detail); return; }
+
+            if (r.fresh === null) { add('ok', f.path, detail); return; }
+
+            if (r.fresh) {
+              add('ok', f.path + ' — версия свежая', detail);
+            } else {
+              stale.push(f.path);
+              add('bad', f.path + ' — СТАРАЯ ВЕРСИЯ ФАЙЛА',
+                'нет фрагмента «' + f.marker + '» (' + f.why + '). ' + detail);
+            }
+          });
+
+          if (!stale.length) return done();
+
+          // Устаревшие файлы: пробуем достучаться до оригинала мимо кеша
+          section('ПОВТОРНАЯ ЗАГРУЗКА МИМО КЕША');
+          var n = stale.length;
+          stale.forEach(function (p) {
+            var f = FILES.filter(function (x) { return x.path === p; })[0];
+            fetch(p + '?bust=' + Date.now() + Math.random(), { cache: 'no-store' })
+              .then(function (r) { return r.text(); })
+              .then(function (text) {
+                var okNow = text.indexOf(f.marker) !== -1;
+                add(okNow ? 'warn' : 'bad', p,
+                  okNow
+                    ? 'мимо кеша приходит СВЕЖИЙ файл — значит старую копию держит кеш CDN сервера'
+                    : 'и мимо кеша файл старый — значит на сервере лежит старая версия');
+              })
+              .catch(function (e) { add('bad', p, 'повтор не удался: ' + e.message); })
+              .then(function () { if (!--n) done(); });
+          });
+        });
+    });
+  }
+
+  /* ============ 4. Модули ============ */
+  function checkModules(done) {
+    section('МОДУЛИ JAVASCRIPT');
+
+    var supports = ('noModule' in document.createElement('script'));
+    add(supports ? 'ok' : 'bad', 'Браузер поддерживает ES-модули',
+      supports ? 'да' : 'НЕТ — браузер слишком старый, система не запустится');
+
+    import('./js/core/store.js?v=6&diag=' + Date.now())
+      .then(function (m) {
+        add('ok', 'Загрузка ядра store.js', 'модуль выполнился');
+
+        try {
+          m.store.init();
+          var users = m.store.users().length;
+          add('ok', 'Инициализация базы', 'аккаунтов в базе: ' + users);
+
+          // Проверка записи: создаём и удаляем тестовую запись
+          var probe = m.store.createUser({ email: 'diag-probe@kogane.jp', password: 'diagprobe' });
+          var raw = localStorage.getItem('kogane:db:v1');
+          var saved = raw && raw.indexOf('diag-probe@kogane.jp') !== -1;
+          m.store.deleteUser(probe.id);
+
+          add(saved ? 'ok' : 'bad', 'Сохранение данных на диск браузера',
+            saved ? 'запись подтверждена' : 'ЗАПИСЬ НЕ СОХРАНИЛАСЬ — регистрация работать не будет');
+        } catch (e) {
+          add('bad', 'Ошибка внутри ядра', e.name + ': ' + e.message);
+        }
+
+        return import('./js/modules/connect.js?v=6&diag=' + Date.now());
+      })
+      .then(function (m) {
+        add(typeof m.connectSequence === 'function' ? 'ok' : 'bad',
+          'Модуль экрана подключения',
+          typeof m.connectSequence === 'function'
+            ? 'загружен, функция перехода на месте'
+            : 'загружен, но функции перехода НЕТ — старая версия файла');
+        done();
+      })
+      .catch(function (e) {
+        add('bad', 'Модули не загрузились', e.name + ': ' + e.message);
+        done();
+      });
+  }
+
+  /* ============ 5. Внешние ресурсы ============ */
+  function checkFonts(done) {
+    section('ВНЕШНИЕ РЕСУРСЫ');
+    var t0 = Date.now();
+    var timer = setTimeout(function () {
+      add('bad', 'Google Fonts не отвечает',
+        'дольше 6 секунд — шрифт блокирует запуск скриптов; страница может «зависать»');
+      done();
+      done = function () {};
+    }, 6000);
+
+    fetch('https://fonts.googleapis.com/css2?family=DotGothic16&display=swap', { mode: 'no-cors' })
+      .then(function () {
+        clearTimeout(timer);
+        add('ok', 'Google Fonts доступен', (Date.now() - t0) + ' мс');
+        done();
+      })
+      .catch(function (e) {
+        clearTimeout(timer);
+        add('warn', 'Google Fonts недоступен',
+          e.message + ' — шрифт заменится системным, но сайт работать должен');
+        done();
+      });
+  }
+
+  /* ============ Итог ============ */
+  function finish() {
+    section('ПЕРЕХВАЧЕННЫЕ ОШИБКИ');
+    if (errors.length) {
+      errors.forEach(function (e) { add('bad', e); });
+    } else {
+      add('ok', 'Ошибок JavaScript не зафиксировано');
+    }
+
+    var v = document.getElementById('verdict');
+    if (problems.length) {
+      v.className = 'verdict bad';
+      v.innerHTML = '<b>НАЙДЕНЫ ПРОБЛЕМЫ (' + problems.length + '):</b><br>• '
+        + problems.join('<br>• ')
+        + '<br><br>Нажмите «Скопировать отчёт» и пришлите его.';
+    } else {
+      v.className = 'verdict ok';
+      v.innerHTML = '<b>ОКРУЖЕНИЕ ИСПРАВНО.</b><br>'
+        + 'Файлы на месте, модули выполняются, хранилище пишет.<br>'
+        + 'Всё равно не работает? Скопируйте отчёт и опишите, '
+        + 'на каком экране и после какого нажатия всё останавливается.';
+    }
+
+    document.getElementById('report').value =
+      'ОТЧЁТ ДИАГНОСТИКИ КОГАНЭ\n' + new Date().toString() + '\n\n' + lines.join('\n');
+  }
+
+  function run() {
+    out.innerHTML = '';
+    lines = []; problems = []; errors = [];
+    document.getElementById('verdict').className = 'verdict';
+    document.getElementById('verdict').textContent = 'Проверка выполняется…';
+
+    checkBrowser();
+    checkStorage();
+    checkFiles(function () {
+      checkModules(function () {
+        checkFonts(finish);
+      });
+    });
+  }
+
+  document.getElementById('again').onclick = run;
+  document.getElementById('home').onclick = function () { location.href = 'index.html'; };
+  document.getElementById('copy').onclick = function () {
+    var t = document.getElementById('report');
+    t.select();
+    try {
+      document.execCommand('copy');
+      this.textContent = 'Скопировано ✓';
+    } catch (e) {
+      this.textContent = 'Выделите текст ниже и скопируйте вручную';
+    }
+  };
+
+  run();
+})();
+</script>
+</body>
+</html>
