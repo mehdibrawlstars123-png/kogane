@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ru" data-crt="on">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Сигнал потерян // 信号消失</title>
+  <link rel="icon" href="../assets/icons/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/main.css?v=5" />
+</head>
+
+<body>
+  <div class="stage">
+    <div class="screen">
+      <header class="sys-head">
+        <div class="sys-head__brand">
+          <span class="led led--off" aria-hidden="true"></span>
+          <span class="sys-head__jp jp">信号消失</span>
+          <span class="sys-head__title">Ошибка канала</span>
+        </div>
+      </header>
+
+      <main class="sys-main">
+        <div class="verdict">
+          <div class="verdict__jp jp glitch" data-text="404">404</div>
+          <div class="verdict__title">Раздел не найден</div>
+          <p class="verdict__text">
+            Система Коганэ не смогла установить соединение с запрошенным разделом.
+            Возможно, барьер был свёрнут или адрес указан неверно.
+          </p>
+          <div class="mt-5">
+            <a class="btn btn--primary btn--lg" href="../index.html">Вернуться к входу</a>
+          </div>
+        </div>
+      </main>
+
+      <footer class="sys-foot">
+        <span class="led led--off" aria-hidden="true"></span>
+        <span class="sys-foot__ticker"><span>天元 // Канал связи с разделом не отвечает.</span></span>
+      </footer>
+    </div>
+  </div>
+
+  <script type="module">
+    import { crt } from '../js/core/crt.js';
+    crt.init();
+  </script>
+</body>
+</html>

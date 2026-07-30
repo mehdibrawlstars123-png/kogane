@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="ru" data-crt="on">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Рассмотрение анкеты // 審査中</title>
+
+  <link rel="icon" href="../assets/icons/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/main.css?v=5" />
+</head>
+
+<body>
+  <div class="stage">
+    <div class="screen" id="screen">
+
+      <header class="sys-head">
+        <div class="sys-head__brand">
+          <span class="led" aria-hidden="true"></span>
+          <span class="sys-head__jp jp">審査</span>
+          <span class="sys-head__title">Проверка заявки</span>
+        </div>
+        <div class="sys-head__meta">
+          <span class="hide-sm" id="userMail">—</span>
+          <span id="headTools"></span>
+        </div>
+      </header>
+
+      <main class="sys-main">
+        <div class="verdict" id="verdict"></div>
+      </main>
+
+      <footer class="sys-foot">
+        <span class="led" aria-hidden="true"></span>
+        <span class="sys-foot__ticker">
+          <span id="ticker">天元 // Ожидание решения распорядителя игры.</span>
+        </span>
+        <span class="hide-sm mono" id="clock">--:--:--</span>
+      </footer>
+
+    </div>
+  </div>
+
+  <script type="module" src="../js/pages/pending.js?v=5"></script>
+</body>
+</html>

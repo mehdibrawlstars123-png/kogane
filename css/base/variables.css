@@ -1,0 +1,109 @@
+/* =========================================================
+   KOGANE SYSTEM — design tokens
+   Палитра снята с кадров аниме: люминофорно-зелёная панель
+   с тёмно-зелёными чернилами, вокруг — тёмный бирюзовый корпус.
+   ========================================================= */
+
+:root {
+  /* ---- Люминофор (панель Коганэ) — яркий жёлто-зелёный, как на кадрах ---- */
+  --phos:        #c6e953;
+  --phos-hi:     #e2fa7d;
+  --phos-lo:     #abd23c;
+  --phos-deep:   #8fb62c;
+
+  /* ---- Чернила (текст на панели) — почти чёрные, для контраста ---- */
+  --ink:         #0c1503;
+  --ink-2:       #17250a;
+  --ink-soft:    rgba(12, 21, 3, 0.72);
+  --ink-faint:   rgba(12, 21, 3, 0.38);
+  --ink-line:    rgba(12, 21, 3, 0.30);
+
+  /* Толщина обводки глифов: пиксельный шрифт тонкий, добавляем «жирности» */
+  --stroke:      0.3px;
+
+  /* ---- Корпус / фон ---- */
+  --bg:          #04140f;
+  --bg-2:        #072620;
+  --bg-3:        #0b3a33;
+  --bg-teal:     #14515c;
+
+  /* ---- Свечение ---- */
+  --glow:        #a6ff4d;
+  --glow-soft:   rgba(166, 255, 77, 0.28);
+  --glow-strong: rgba(166, 255, 77, 0.55);
+
+  /* ---- Сигнальные ---- */
+  --danger:      #b81f14;
+  --danger-ink:  #4a0d07;
+  --warn:        #c98a10;
+  --ok:          #2f6b12;
+
+  /* ---- Шрифты ---- */
+  --font-pixel:  "DotGothic16", "Press Start 2P", "MS Gothic", monospace;
+  --font-mono:   "DotGothic16", ui-monospace, "Courier New", monospace;
+  --font-jp:     "DotGothic16", "MS Gothic", "Yu Gothic", monospace;
+
+  --fs-xxs:  12px;
+  --fs-xs:   13px;
+  --fs-sm:   15px;
+  --fs-base: 17px;
+  --fs-lg:   21px;
+  --fs-xl:   clamp(22px, 2.4vw, 30px);
+  --fs-2xl:  clamp(28px, 4vw, 48px);
+  --fs-3xl:  clamp(40px, 7vw, 92px);
+
+  --lh:      1.55;
+  --tracking: 0.06em;
+  --tracking-wide: 0.22em;
+
+  /* ---- Пространство ---- */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+  --sp-8: 64px;
+
+  /* ---- Геометрия ---- */
+  --panel-r: 4px;
+  --screen-max: 1360px;
+  --gutter: clamp(12px, 3vw, 32px);
+  --scanline-h: 3px;
+
+  /* ---- Тайминги ---- */
+  --dur-1: 90ms;
+  --dur-2: 180ms;
+  --dur-3: 340ms;
+  --dur-4: 700ms;
+  --dur-5: 1200ms;
+
+  --ease:      cubic-bezier(0.2, 0.9, 0.25, 1);
+  --ease-step: steps(8, end);
+  --ease-crt:  cubic-bezier(0.85, 0, 0.15, 1);
+
+  /* ---- Слои ---- */
+  --z-panel: 1;
+  --z-sticky: 40;
+  --z-modal: 120;
+  --z-toast: 160;
+  --z-crt: 200;
+  --z-boot: 260;
+  --z-death: 320;
+}
+
+/* Аварийный режим системы (миграция завершена / игрок мёртв) */
+:root[data-mode="dead"] {
+  --phos:      #a13228;
+  --phos-hi:   #c94032;
+  --phos-lo:   #7d241c;
+  --phos-deep: #5c1710;
+  --ink:       #140301;
+  --ink-2:     #260806;
+  --ink-soft:  rgba(20, 3, 1, 0.74);
+  --ink-faint: rgba(20, 3, 1, 0.4);
+  --ink-line:  rgba(20, 3, 1, 0.32);
+  --glow:      #ff4a33;
+  --glow-soft: rgba(255, 74, 51, 0.3);
+}

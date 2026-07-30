@@ -1,0 +1,192 @@
+/* =========================================================
+   Boot / Connect — загрузочная последовательность и подключение
+   ========================================================= */
+
+.boot {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-boot);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: clamp(20px, 6vw, 80px);
+  background: #030c08;
+  color: var(--glow);
+  font-family: var(--font-mono);
+  font-size: clamp(11px, 1.5vw, 14px);
+  line-height: 1.85;
+  text-shadow: 0 0 10px rgba(166, 255, 77, 0.6), 0 0 30px rgba(166, 255, 77, 0.25);
+}
+
+.boot.is-done {
+  animation: power-off 0.45s var(--ease-crt) forwards;
+}
+
+.boot__log {
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.boot__line {
+  display: flex;
+  gap: var(--sp-3);
+  white-space: pre-wrap;
+  animation: fade-in var(--dur-1) linear both;
+}
+
+.boot__line b { color: #ddffb0; font-weight: 400; }
+.boot__line--ok::after { content: "[ OK ]"; margin-left: auto; opacity: 0.8; }
+.boot__line--err { color: #ff5c47; text-shadow: 0 0 12px rgba(255, 92, 71, 0.6); }
+.boot__line--jp { font-family: var(--font-jp); opacity: 0.65; }
+
+.boot__bar {
+  margin-top: var(--sp-4);
+  max-width: 900px;
+  width: 100%;
+  margin-inline: auto;
+  border: 1px solid rgba(166, 255, 77, 0.5);
+  padding: 2px;
+  height: 14px;
+}
+
+.boot__fill {
+  height: 100%;
+  width: 0;
+  background: repeating-linear-gradient(90deg, var(--glow) 0 6px, transparent 6px 8px);
+  box-shadow: 0 0 14px var(--glow-strong);
+  transition: width 0.2s linear;
+}
+
+.boot__skip {
+  max-width: 900px;
+  width: 100%;
+  margin: var(--sp-3) auto 0;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  opacity: 0.4;
+  animation: caret-blink 2.4s steps(1, end) infinite;
+}
+
+/* ---- Экран подключения к барьеру ---- */
+.connect {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-boot);
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(70% 60% at 50% 45%, rgba(166, 255, 77, 0.12), transparent 70%),
+    #030c08;
+  overflow: hidden;
+}
+
+.connect__inner {
+  position: relative;
+  width: min(720px, 100%);
+  padding: var(--gutter);
+  text-align: center;
+  color: var(--glow);
+  text-shadow: 0 0 12px rgba(166, 255, 77, 0.55);
+}
+
+.connect__jp {
+  font-family: var(--font-jp);
+  font-size: clamp(28px, 6vw, 64px);
+  line-height: 1.1;
+  opacity: 0.9;
+}
+
+.connect__step {
+  margin-top: var(--sp-5);
+  font-family: var(--font-pixel);
+  font-size: clamp(14px, 2.6vw, 24px);
+  letter-spacing: 0.14em;
+  min-height: 2.2em;
+}
+
+.connect__sub {
+  margin-top: var(--sp-2);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  opacity: 0.55;
+}
+
+/* Концентрические круги «барьера» */
+.barrier {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  width: min(90vmin, 620px);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.barrier__ring {
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgba(166, 255, 77, 0.35);
+  border-radius: 50%;
+  animation: ring-out 3.2s ease-out infinite;
+}
+.barrier__ring:nth-child(2) { animation-delay: 0.8s }
+.barrier__ring:nth-child(3) { animation-delay: 1.6s }
+.barrier__ring:nth-child(4) { animation-delay: 2.4s }
+
+@keyframes ring-out {
+  0%   { transform: scale(0.15); opacity: 0 }
+  15%  { opacity: 0.9 }
+  100% { transform: scale(1); opacity: 0 }
+}
+
+.barrier__grid {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background-image:
+    linear-gradient(rgba(166, 255, 77, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(166, 255, 77, 0.08) 1px, transparent 1px);
+  background-size: 34px 34px;
+  animation: spin-slow 90s linear infinite;
+  mask-image: radial-gradient(closest-side, #000 60%, transparent);
+  -webkit-mask-image: radial-gradient(closest-side, #000 60%, transparent);
+}
+
+.connect__bar {
+  margin: var(--sp-5) auto 0;
+  max-width: 420px;
+  height: 10px;
+  border: 1px solid rgba(166, 255, 77, 0.5);
+  padding: 2px;
+}
+.connect__fill {
+  height: 100%;
+  width: 0;
+  background: repeating-linear-gradient(90deg, var(--glow) 0 5px, transparent 5px 7px);
+  box-shadow: 0 0 16px var(--glow-strong);
+  transition: width 0.3s var(--ease);
+}
+
+.connect.is-done { animation: power-off 0.5s var(--ease-crt) forwards; }
+
+/* Пропуск подключения — экран не должен запирать пользователя */
+.connect__skip {
+  margin-top: var(--sp-5);
+  padding: 8px 20px;
+  border: 1px solid rgba(166, 255, 77, 0.5);
+  background: none;
+  color: var(--glow);
+  font-family: var(--font-pixel);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  text-shadow: 0 0 10px rgba(166, 255, 77, 0.6);
+  transition: background-color var(--dur-2) var(--ease), color var(--dur-2) var(--ease);
+}
+
+.connect__skip:hover {
+  background: rgba(166, 255, 77, 0.16);
+  border-color: var(--glow);
+}

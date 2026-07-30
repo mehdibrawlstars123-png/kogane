@@ -1,0 +1,173 @@
+/* =========================================================
+   Admin — панель администрации 「管理者権限」
+   ========================================================= */
+
+:root[data-role="admin"] .screen {
+  box-shadow:
+    0 0 0 2px rgba(12, 21, 3, 0.4),
+    0 0 0 10px rgba(20, 4, 2, 0.92),
+    0 0 0 11px rgba(255, 120, 60, 0.22),
+    0 0 60px rgba(255, 140, 60, 0.18),
+    0 0 180px rgba(166, 255, 77, 0.12),
+    inset 0 0 90px rgba(12, 21, 3, 0.18);
+}
+
+.admin-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  background: var(--ink);
+  color: var(--phos-hi);
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+/* Плитки статистики админки */
+.astats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr));
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-4);
+}
+
+/* Очередь анкет */
+.appq { border: 2px solid var(--ink-line); }
+
+.appq__item {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  gap: var(--sp-3);
+  align-items: center;
+  padding: var(--sp-3);
+  border-bottom: 1px dashed var(--ink-faint);
+  transition: background-color var(--dur-2) var(--ease);
+}
+.appq__item:hover { background: rgba(12, 21, 3, 0.08); }
+.appq__item.is-processed { opacity: 0.45; }
+
+.appq__name { font-size: var(--fs-sm); }
+.appq__meta {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-soft);
+}
+
+/* Инструменты редактирования участника */
+.editor {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: var(--sp-4);
+  align-items: start;
+}
+
+.editor__list {
+  border: 2px solid var(--ink-line);
+  max-height: 560px;
+  overflow-y: auto;
+}
+
+.editor__item {
+  display: block;
+  width: 100%;
+  padding: var(--sp-2) var(--sp-3);
+  text-align: left;
+  border-bottom: 1px dashed var(--ink-faint);
+  font-size: var(--fs-xs);
+  transition: background-color var(--dur-1) var(--ease), color var(--dur-1) var(--ease);
+}
+.editor__item:hover { background: rgba(12, 21, 3, 0.1); }
+.editor__item.is-active { background: var(--ink); color: var(--phos-hi); }
+.editor__item small { display: block; font-family: var(--font-mono); font-size: 9px; opacity: 0.7; }
+
+.editor__pane {
+  border: 2px solid var(--ink-line);
+  padding: var(--sp-4);
+  min-height: 320px;
+}
+
+/* Быстрые действия с очками */
+.quickops {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  align-items: center;
+  padding: var(--sp-3);
+  border: 1px dashed var(--ink-faint);
+  margin-bottom: var(--sp-4);
+}
+
+/* Тумблеры вкладок админки */
+.atabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  margin-bottom: var(--sp-4);
+  border-bottom: 2px solid var(--ink-line);
+}
+
+.atab {
+  padding: 8px 14px;
+  border: 2px solid transparent;
+  border-bottom: 0;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  transition: all var(--dur-2) var(--ease);
+}
+.atab:hover { color: var(--ink); background: rgba(12, 21, 3, 0.08); }
+.atab.is-active {
+  border-color: var(--ink-line);
+  background: var(--phos-hi);
+  color: var(--ink);
+  margin-bottom: -2px;
+  padding-bottom: 10px;
+}
+
+/* Опасная зона */
+.danger-zone {
+  border: 2px solid var(--danger);
+  background: rgba(184, 31, 20, 0.08);
+  padding: var(--sp-4);
+}
+.danger-zone__title {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-2);
+  font-size: var(--fs-xs);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--danger-ink);
+}
+.danger-zone__text {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1.75;
+  color: var(--ink-2);
+  margin-bottom: var(--sp-3);
+}
+
+/* Журнал действий */
+.logline {
+  display: grid;
+  grid-template-columns: 132px 92px minmax(0, 1fr);
+  gap: var(--sp-3);
+  padding: 3px var(--sp-2);
+  border-bottom: 1px dotted var(--ink-faint);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1.7;
+}
+.logline:hover { background: rgba(12, 21, 3, 0.08); }
+.logline__ts { color: var(--ink-soft); }
+.logline__act { text-transform: uppercase; letter-spacing: 0.1em; }
+.logline--danger { color: var(--danger-ink); }
+
+@media (max-width: 900px) {
+  .editor { grid-template-columns: 1fr; }
+  .editor__list { max-height: 240px; }
+  .logline { grid-template-columns: 1fr; gap: 0; }
+}

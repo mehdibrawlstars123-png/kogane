@@ -1,0 +1,80 @@
+/* =========================================================
+   Glitch / искажения сигнала
+   ========================================================= */
+
+/* Текст с расщеплением каналов. Требует data-text="…" */
+.glitch {
+  position: relative;
+  display: inline-block;
+}
+
+.glitch::before,
+.glitch::after {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.glitch::before {
+  color: rgba(190, 40, 40, 0.75);
+  transform: translate(-2px, 0);
+  clip-path: inset(0 0 55% 0);
+  animation: glitch-x 0.6s steps(3, end) infinite;
+}
+
+.glitch::after {
+  color: rgba(30, 190, 210, 0.7);
+  transform: translate(2px, 0);
+  clip-path: inset(55% 0 0 0);
+  animation: glitch-x 0.75s steps(3, end) infinite reverse;
+}
+
+/* Единичный сбой сигнала — навешивается js на короткое время */
+.signal-loss {
+  animation: glitch-x 0.18s steps(2, end) 3;
+}
+
+.signal-loss::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0 6px,
+      rgba(12, 21, 3, 0.35) 6px 8px
+    );
+  animation: crt-sweep 0.35s linear 2;
+}
+
+/* Разрывы строк (tearing) */
+.tear {
+  animation: tear-shift 0.5s steps(4, end) 1;
+}
+
+@keyframes tear-shift {
+  0%   { clip-path: inset(0 0 0 0); transform: translateX(0) }
+  25%  { clip-path: inset(20% 0 60% 0); transform: translateX(-8px) }
+  50%  { clip-path: inset(60% 0 20% 0); transform: translateX(6px) }
+  75%  { clip-path: inset(35% 0 45% 0); transform: translateX(-4px) }
+  100% { clip-path: inset(0 0 0 0); transform: translateX(0) }
+}
+
+/* Пиксельный переход между экранами */
+.pixel-wipe {
+  position: fixed;
+  inset: 0;
+  z-index: calc(var(--z-crt) - 1);
+  pointer-events: none;
+  background: var(--ink);
+  clip-path: inset(0 0 100% 0);
+  animation: pixel-wipe-in 0.45s var(--ease-step) forwards;
+}
+
+.pixel-wipe.is-out { animation: pixel-wipe-out 0.45s var(--ease-step) forwards; }
+
+@keyframes pixel-wipe-in  { to { clip-path: inset(0 0 0 0) } }
+@keyframes pixel-wipe-out { from { clip-path: inset(0 0 0 0) } to { clip-path: inset(100% 0 0 0) } }

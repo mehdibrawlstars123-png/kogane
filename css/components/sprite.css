@@ -1,0 +1,66 @@
+/* =========================================================
+   Sprite — пиксель-арт (рендерится js/core/sprites.js в SVG)
+   ========================================================= */
+
+.sprite {
+  display: block;
+  image-rendering: pixelated;
+  shape-rendering: crispEdges;
+  flex-shrink: 0;
+}
+
+.sprite--ink   { color: var(--ink); }
+.sprite--soft  { color: var(--ink-soft); }
+.sprite--glow  { color: var(--glow); filter: drop-shadow(0 0 8px var(--glow-soft)); }
+.sprite--paper { color: var(--phos-hi); }
+
+.sprite--blink { animation: caret-blink 1.2s steps(1, end) infinite; }
+.sprite--float { animation: float-slow 5s var(--ease) infinite; }
+
+/* Коганэ (векторная линия, как в аниме) */
+.kogane {
+  width: clamp(120px, 22vw, 240px);
+  filter: drop-shadow(0 0 18px var(--glow-soft));
+  animation: float-slow 5.5s var(--ease) infinite;
+}
+
+.kogane--lg { width: clamp(220px, 40vw, 460px); }
+
+.kogane__wing { transform-origin: center; animation: flap 1.4s ease-in-out infinite; }
+.kogane__wing--r { animation-delay: 0.1s; }
+
+/* Свиток со списком, который держит Коганэ */
+.scroll-list {
+  position: relative;
+  width: clamp(150px, 26vw, 260px);
+  padding: var(--sp-2);
+  background: linear-gradient(180deg, var(--phos-hi), var(--phos-lo));
+  border: 2px solid var(--ink);
+  box-shadow: 0 0 24px var(--glow-soft);
+  font-family: var(--font-jp);
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.scroll-list::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(12, 21, 3, 0) 0 2px,
+    rgba(12, 21, 3, 0.16) 3px 4px
+  );
+}
+
+.scroll-list__row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-bottom: 1px solid var(--ink-faint);
+  padding: 1px 0;
+}
+.scroll-list__row span:last-child { margin-left: auto; }
+
+/* Иконка-«лицо» участника в списке (пиксельный человечек) */
+.face { display: flex; flex-direction: column; align-items: center; gap: 1px; }

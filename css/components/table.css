@@ -1,0 +1,209 @@
+/* =========================================================
+   Table — таблица участников как на кадре 「泳者一覧」
+   ========================================================= */
+
+.roster {
+  border: 2px solid var(--ink-line);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Шапка списка */
+.roster__head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+  border-bottom: 2px solid var(--ink);
+  background: rgba(12, 21, 3, 0.12);
+}
+
+.roster__title {
+  font-family: var(--font-jp);
+  font-size: var(--fs-lg);
+  line-height: 1;
+}
+
+.roster__count {
+  margin-left: auto;
+  font-size: var(--fs-xxs);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+/* Заголовки колонок */
+.roster__cols,
+.roster__row {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1.6fr) 110px 108px minmax(0, 1fr);
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+}
+
+.roster__cols {
+  border-bottom: 1px solid var(--ink-faint);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.roster__cols button {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+  text-transform: inherit;
+  text-align: left;
+}
+.roster__cols button:hover { color: var(--ink); }
+.roster__cols button[data-dir]::after { content: attr(data-dir); font-family: var(--font-jp); }
+
+/* Строка участника — «печатается» слева направо */
+.roster__row {
+  width: 100%;
+  border-bottom: 1px dashed var(--ink-faint);
+  text-align: left;
+  cursor: pointer;
+  animation: row-print 0.42s var(--ease-crt) both;
+  animation-delay: var(--row-delay, 0ms);
+  transition: background-color var(--dur-1) var(--ease), color var(--dur-1) var(--ease);
+}
+
+.roster__row:hover {
+  background: var(--ink);
+  color: var(--phos-hi);
+}
+.roster__row:hover .rname__jp,
+.roster__row:hover .muted { color: var(--phos); }
+.roster__row:hover .sprite { filter: invert(1) brightness(1.6); }
+
+.roster__row.is-me { background: rgba(12, 21, 3, 0.14); }
+.roster__row.is-dead { opacity: 0.5; }
+.roster__row.is-dead .rname__ru { text-decoration: line-through; }
+
+/* Ячейки */
+.rcell { min-width: 0; }
+
+.rname { display: flex; flex-direction: column; min-width: 0; }
+.rname__ru {
+  font-size: var(--fs-sm);
+  letter-spacing: 0.04em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rname__jp {
+  font-family: var(--font-jp);
+  font-size: var(--fs-xs);
+  color: var(--ink-soft);
+}
+
+.rpoints {
+  font-family: var(--font-jp);
+  font-size: var(--fs-lg);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.rrules {
+  font-family: var(--font-jp);
+  font-size: var(--fs-base);
+  font-variant-numeric: tabular-nums;
+}
+.rrules small { font-size: var(--fs-xs); opacity: 0.6; }
+
+.rcolony {
+  display: flex;
+  flex-direction: column;
+  font-size: var(--fs-xs);
+}
+.rcolony .jp { opacity: 0.6; font-size: 11px; }
+
+/* Иконка участника (пиксельный человечек / череп) */
+.rface {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Панель управления списком */
+.roster__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
+  border-bottom: 1px solid var(--ink-faint);
+}
+
+.chip {
+  padding: 4px 10px;
+  border: 1px solid var(--ink-faint);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  transition: all var(--dur-2) var(--ease);
+}
+.chip:hover { border-color: var(--ink); color: var(--ink); }
+.chip.is-active { background: var(--ink); color: var(--phos-hi); border-color: var(--ink); }
+
+/* Пустое состояние */
+.empty {
+  padding: var(--sp-6);
+  text-align: center;
+  font-size: var(--fs-xs);
+  line-height: 1.9;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  max-width: 62ch;
+  margin-inline: auto;
+}
+.empty .jp-big { display: block; margin-bottom: var(--sp-2); opacity: 0.35; }
+
+/* Простая таблица данных (админка, логи) */
+.dtable { font-size: var(--fs-xs); }
+.dtable th {
+  padding: 6px 8px;
+  text-align: left;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  border-bottom: 2px solid var(--ink-line);
+  white-space: nowrap;
+}
+.dtable td {
+  padding: 6px 8px;
+  border-bottom: 1px dashed var(--ink-faint);
+  vertical-align: top;
+}
+.dtable tr:hover td { background: rgba(12, 21, 3, 0.07); }
+.dtable--compact td, .dtable--compact th { padding: 3px 6px; }
+
+.table-scroll {
+  overflow-x: auto;
+  max-height: 460px;
+  overflow-y: auto;
+}
+
+@media (max-width: 860px) {
+  .roster__cols { display: none; }
+  .roster__row {
+    grid-template-columns: 36px 1fr auto;
+    grid-template-areas:
+      "face name points"
+      "face colony rules";
+    gap: var(--sp-1) var(--sp-3);
+  }
+  .roster__row .rface   { grid-area: face }
+  .roster__row .rcell--name   { grid-area: name }
+  .roster__row .rcell--points { grid-area: points; text-align: right }
+  .roster__row .rcell--rules  { grid-area: rules; text-align: right }
+  .roster__row .rcell--colony { grid-area: colony }
+}

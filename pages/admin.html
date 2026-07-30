@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ru" data-crt="on" data-role="admin">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#04140f" />
+  <title>Панель распорядителя // 管理者権限</title>
+
+  <link rel="icon" href="../assets/icons/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/main.css?v=5" />
+</head>
+
+<body>
+  <div class="stage">
+    <div class="screen" id="screen">
+
+      <header class="sys-head">
+        <div class="sys-head__brand">
+          <button class="nav-toggle" type="button" id="navToggle" aria-label="Меню">
+            <span>МЕНЮ</span><span class="jp">目次</span>
+          </button>
+          <span class="led" aria-hidden="true"></span>
+          <span class="sys-head__jp jp">管理者権限</span>
+          <span class="sys-head__title hide-sm">Панель распорядителя</span>
+          <span class="admin-badge hide-sm">ADMIN</span>
+        </div>
+
+        <div class="sys-head__meta">
+          <span class="hide-sm">Анкет в очереди: <b id="hQueue">0</b></span>
+          <span>Миграция: <b id="hMigration">—</b></span>
+          <span id="headTools"></span>
+        </div>
+      </header>
+
+      <div class="sys-body">
+        <nav class="sys-nav" id="nav" aria-label="Разделы администрации">
+          <div class="sys-nav__group">
+            <div class="sys-nav__caption">Управление</div>
+            <button class="navitem is-active" type="button" data-panel="dash">
+              Сводка <span class="navitem__jp jp">概況</span>
+            </button>
+            <button class="navitem" type="button" data-panel="applications">
+              Анкеты
+              <span class="navitem__badge" id="queueBadge" hidden>0</span>
+              <span class="navitem__jp jp">審査</span>
+            </button>
+            <button class="navitem" type="button" data-panel="participants">
+              Участники <span class="navitem__jp jp">泳者管理</span>
+            </button>
+          </div>
+
+          <div class="sys-nav__group">
+            <div class="sys-nav__caption">Содержимое</div>
+            <button class="navitem" type="button" data-panel="rules">
+              Правила магазина <span class="navitem__jp jp">規則管理</span>
+            </button>
+            <button class="navitem" type="button" data-panel="notices">
+              Уведомления <span class="navitem__jp jp">通知作成</span>
+            </button>
+            <button class="navitem" type="button" data-panel="broadcast">
+              Рассылка <span class="navitem__jp jp">一斉通知</span>
+            </button>
+          </div>
+
+          <div class="sys-nav__group">
+            <div class="sys-nav__caption">Игра</div>
+            <button class="navitem" type="button" data-panel="migration">
+              Миграция <span class="navitem__jp jp">回游管理</span>
+            </button>
+            <button class="navitem" type="button" data-panel="logs">
+              Журнал действий <span class="navitem__jp jp">記録</span>
+            </button>
+            <button class="navitem" type="button" data-panel="base">
+              База системы <span class="navitem__jp jp">基盤</span>
+            </button>
+          </div>
+
+          <div class="sys-nav__group">
+            <div class="sys-nav__caption">Переход</div>
+            <button class="navitem" type="button" id="toSystem">
+              Игровой интерфейс <span class="navitem__jp jp">回游画面</span>
+            </button>
+          </div>
+        </nav>
+
+        <main class="sys-main" id="panel"></main>
+      </div>
+
+      <footer class="sys-foot">
+        <span class="led" aria-hidden="true"></span>
+        <span class="sys-foot__ticker"><span id="ticker">管理者権限 // Все действия фиксируются в журнале системы.</span></span>
+        <span class="hide-sm mono" id="clock">--:--:--</span>
+      </footer>
+
+    </div>
+  </div>
+
+  <script type="module" src="../js/pages/admin.js?v=5"></script>
+</body>
+</html>

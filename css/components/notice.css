@@ -1,0 +1,139 @@
+/* =========================================================
+   Notice — уведомления Коганэ (тосты + список истории)
+   ========================================================= */
+
+.toasts {
+  position: fixed;
+  top: var(--sp-4);
+  right: var(--sp-4);
+  z-index: var(--z-toast);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  width: min(360px, calc(100vw - 32px));
+  pointer-events: none;
+}
+
+.toast {
+  position: relative;
+  display: flex;
+  gap: var(--sp-3);
+  padding: var(--sp-3);
+  background: var(--phos);
+  border: 2px solid var(--ink);
+  box-shadow: 0 0 0 2px rgba(4, 20, 15, 0.8), 0 8px 30px rgba(0, 0, 0, 0.5), 0 0 30px var(--glow-soft);
+  pointer-events: auto;
+  overflow: hidden;
+  animation: toast-in 0.45s var(--ease-crt) both;
+}
+
+.toast.is-out { animation: toast-out 0.3s var(--ease) forwards; }
+
+@keyframes toast-in {
+  0%   { opacity: 0; transform: translateX(30px); clip-path: inset(50% 0 50% 0) }
+  55%  { opacity: 1; clip-path: inset(0 0 0 0) }
+  100% { opacity: 1; transform: none }
+}
+@keyframes toast-out {
+  to { opacity: 0; transform: translateX(24px); clip-path: inset(50% 0 50% 0) }
+}
+
+/* Строки развёртки на тосте */
+.toast::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(12, 21, 3, 0) 0 2px,
+    rgba(12, 21, 3, 0.12) 3px 4px
+  );
+}
+
+.toast__icon { flex-shrink: 0; }
+
+.toast__body { min-width: 0; }
+
+.toast__title {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  font-size: var(--fs-xs);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.toast__title .jp { font-size: var(--fs-xs); opacity: 0.6; letter-spacing: 0.08em; }
+
+.toast__text {
+  margin-top: 2px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--ink-2);
+}
+
+.toast__bar {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 3px;
+  background: var(--ink);
+  animation: toast-bar var(--toast-life, 6s) linear forwards;
+}
+@keyframes toast-bar { from { width: 100% } to { width: 0 } }
+
+.toast--alert { border-color: var(--danger); }
+.toast--alert .toast__bar { background: var(--danger); }
+
+/* ---- Список истории уведомлений ---- */
+.notices { border: 2px solid var(--ink-line); }
+
+.notice {
+  display: grid;
+  grid-template-columns: 34px 122px minmax(0, 1fr);
+  gap: var(--sp-3);
+  align-items: start;
+  padding: var(--sp-3);
+  border-bottom: 1px dashed var(--ink-faint);
+  animation: row-print 0.4s var(--ease-crt) both;
+  animation-delay: var(--row-delay, 0ms);
+  transition: background-color var(--dur-2) var(--ease);
+}
+.notice:hover { background: rgba(12, 21, 3, 0.07); }
+.notice.is-unread { background: rgba(12, 21, 3, 0.12); }
+.notice.is-unread .notice__title::after {
+  content: "НОВОЕ";
+  margin-left: var(--sp-2);
+  padding: 1px 5px;
+  background: var(--ink);
+  color: var(--phos-hi);
+  font-size: 8px;
+  letter-spacing: 0.16em;
+}
+
+.notice__ts {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-soft);
+  line-height: 1.5;
+}
+
+.notice__title {
+  font-size: var(--fs-xs);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.notice__text {
+  margin-top: 2px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.65;
+  color: var(--ink-2);
+}
+
+@media (max-width: 700px) {
+  .notice { grid-template-columns: 28px minmax(0, 1fr); }
+  .notice__ts { grid-column: 2; }
+}

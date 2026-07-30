@@ -1,0 +1,156 @@
+/* =========================================================
+   Rule — правила: магазин, база, история
+   ========================================================= */
+
+.rule {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-4);
+  border: 2px solid var(--ink-line);
+  background: rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+  transition: border-color var(--dur-2) var(--ease), transform var(--dur-2) var(--ease);
+}
+
+.rule:hover { border-color: var(--ink); transform: translateY(-2px); }
+
+/* Печать «ПРИНЯТО» для купленных */
+.rule.is-owned::after {
+  content: "УСТАНОВЛЕНО";
+  position: absolute;
+  top: 12px;
+  right: -34px;
+  padding: 3px 40px;
+  transform: rotate(35deg);
+  background: var(--ink);
+  color: var(--phos-hi);
+  font-size: 9px;
+  letter-spacing: 0.2em;
+}
+
+.rule.is-locked { opacity: 0.55; }
+
+.rule__head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-3);
+}
+
+.rule__code {
+  flex-shrink: 0;
+  padding: 2px 6px;
+  border: 1px solid var(--ink-faint);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--ink-soft);
+}
+
+.rule__title {
+  font-size: var(--fs-sm);
+  letter-spacing: 0.04em;
+  line-height: 1.4;
+}
+
+.rule__jp {
+  font-family: var(--font-jp);
+  font-size: var(--fs-xs);
+  color: var(--ink-soft);
+}
+
+.rule__text {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  line-height: 1.7;
+  color: var(--ink-2);
+}
+
+.rule__foot {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding-top: var(--sp-3);
+  border-top: 1px dashed var(--ink-faint);
+}
+
+.rule__cost {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  font-family: var(--font-jp);
+  font-size: var(--fs-lg);
+  line-height: 1;
+}
+.rule__cost small { font-size: 10px; letter-spacing: 0.14em; color: var(--ink-soft); }
+
+.rule__buy { margin-left: auto; }
+
+.rule__cat {
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+/* Базовое правило игры (нумерованный список как в манге) */
+.baserule {
+  display: flex;
+  gap: var(--sp-3);
+  padding: var(--sp-3) 0;
+  border-bottom: 1px dashed var(--ink-faint);
+}
+
+.baserule__no {
+  flex-shrink: 0;
+  width: 46px;
+  font-family: var(--font-jp);
+  font-size: var(--fs-lg);
+  line-height: 1.1;
+  opacity: 0.6;
+}
+
+.baserule__body { min-width: 0; }
+.baserule__title { font-size: var(--fs-sm); margin-bottom: 2px; }
+.baserule__text {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  line-height: 1.7;
+  color: var(--ink-2);
+}
+
+/* Строка истории правил */
+.hrow {
+  display: grid;
+  grid-template-columns: 128px 84px minmax(0, 1fr) 150px;
+  gap: var(--sp-3);
+  align-items: baseline;
+  padding: var(--sp-2) 0;
+  border-bottom: 1px dashed var(--ink-faint);
+  font-size: var(--fs-xs);
+  animation: row-print 0.4s var(--ease-crt) both;
+  animation-delay: var(--row-delay, 0ms);
+}
+
+.hrow__ts { font-family: var(--font-mono); font-size: 10px; color: var(--ink-soft); }
+
+.hrow__tag {
+  padding: 1px 6px;
+  border: 1px solid var(--ink-faint);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-align: center;
+}
+.hrow__tag--add { background: var(--ink); color: var(--phos-hi); border-color: var(--ink); }
+.hrow__tag--base { border-style: dashed; }
+.hrow__tag--mod { background: rgba(12, 21, 3, 0.18); }
+
+.hrow__by { text-align: right; color: var(--ink-soft); font-size: 10px; }
+
+@media (max-width: 760px) {
+  .hrow { grid-template-columns: 1fr; gap: 2px; }
+  .hrow__by, .hrow__tag { text-align: left; }
+  .hrow__tag { justify-self: start; }
+}

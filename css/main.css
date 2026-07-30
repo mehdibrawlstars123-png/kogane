@@ -1,0 +1,42 @@
+/* =========================================================
+   KOGANE SYSTEM — entry point
+   死滅回游 管理システム
+   ========================================================= */
+
+/* Base */
+@import url("base/variables.css");
+@import url("base/reset.css");
+@import url("base/typography.css");
+@import url("base/animations.css");
+
+/* Effects */
+@import url("effects/crt.css");
+@import url("effects/glitch.css");
+
+/* Layout */
+@import url("layout/screen.css");
+@import url("layout/panel.css");
+@import url("layout/grid.css");
+
+/* Components */
+@import url("components/button.css");
+@import url("components/field.css");
+@import url("components/nav.css");
+@import url("components/table.css");
+@import url("components/card.css");
+@import url("components/rule.css");
+@import url("components/notice.css");
+@import url("components/modal.css");
+@import url("components/search.css");
+@import url("components/boot.css");
+@import url("components/sprite.css");
+
+/* Pages */
+@import url("pages/auth.css");
+@import url("pages/application.css");
+@import url("pages/system.css");
+@import url("pages/admin.css");
+@import url("pages/death.css");
+
+/* Utils */
+@import url("utils/helpers.css");

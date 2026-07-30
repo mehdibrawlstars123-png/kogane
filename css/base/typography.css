@@ -1,0 +1,84 @@
+/* =========================================================
+   Typography — пиксельный японский интерфейс
+   ========================================================= */
+
+h1, h2, h3, h4 {
+  font-family: var(--font-pixel);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0.04em;
+}
+
+h1 { font-size: var(--fs-2xl); }
+h2 { font-size: var(--fs-xl); }
+h3 { font-size: var(--fs-lg); }
+h4 { font-size: var(--fs-base); }
+
+/* Хроматическая аберрация CRT — как на кадрах */
+.chroma,
+h1, h2, h3,
+.jp-big {
+  text-shadow:
+     1px 0 0 rgba(180, 30, 30, 0.30),
+    -1px 0 0 rgba(20, 160, 190, 0.26);
+}
+
+/* Японский слой интерфейса */
+.jp {
+  font-family: var(--font-jp);
+  letter-spacing: 0.08em;
+}
+
+.jp-big {
+  font-family: var(--font-jp);
+  font-size: var(--fs-2xl);
+  line-height: 1;
+  color: var(--ink-2);
+  opacity: 0.85;
+}
+
+.jp-label {
+  font-family: var(--font-jp);
+  font-size: var(--fs-xs);
+  color: var(--ink-soft);
+  letter-spacing: 0.16em;
+}
+
+/* Ярлык-подпись над значением (как «Очки:» на кадре) */
+.label {
+  display: block;
+  font-size: var(--fs-xs);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.value {
+  font-family: var(--font-jp);
+  font-size: var(--fs-xl);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.value--huge { font-size: var(--fs-2xl); }
+
+.muted   { color: var(--ink-soft); }
+.faint   { color: var(--ink-faint); }
+.upper   { text-transform: uppercase; }
+.nowrap  { white-space: nowrap; }
+.tnum    { font-variant-numeric: tabular-nums; }
+
+/* Мигающий курсор терминала */
+.caret::after {
+  content: "\2588";
+  display: inline-block;
+  margin-left: 2px;
+  animation: caret-blink 1s steps(1, end) infinite;
+}
+
+/* Ссылка терминала */
+.tlink {
+  border-bottom: 1px solid var(--ink-faint);
+  transition: border-color var(--dur-2) var(--ease), color var(--dur-2) var(--ease);
+}
+.tlink:hover { border-color: var(--ink); }

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ru" data-crt="on">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#04140f" />
+  <title>Анкета участника // 登録申請</title>
+
+  <link rel="icon" href="../assets/icons/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/main.css?v=5" />
+</head>
+
+<body>
+  <div class="stage">
+    <div class="screen" id="screen">
+
+      <header class="sys-head">
+        <div class="sys-head__brand">
+          <span class="led" aria-hidden="true"></span>
+          <span class="sys-head__jp jp">登録申請</span>
+          <span class="sys-head__title">Анкета участника</span>
+        </div>
+        <div class="sys-head__meta">
+          <span class="hide-sm" id="userMail">—</span>
+          <span id="headTools"></span>
+        </div>
+      </header>
+
+      <main class="sys-main">
+        <form class="form-doc" id="appForm" novalidate>
+
+          <div class="form-doc__head">
+            <span class="form-doc__jp jp chroma">登録申請書</span>
+            <div>
+              <div class="form-doc__title">Заявка на внесение в реестр</div>
+              <div class="fs-xxs muted">Шаг 3 из 3 — анкета персонажа</div>
+            </div>
+            <div class="form-doc__no mono">
+              ФОРМА K-19<br />
+              <span id="appNo">№ —</span>
+            </div>
+          </div>
+
+          <div class="regsteps">
+            <span class="regstep is-done"><b>1</b> Почта</span>
+            <span class="regstep is-done"><b>2</b> Пароль</span>
+            <span class="regstep is-active"><b>3</b> Анкета</span>
+          </div>
+
+          <div class="steps" id="steps" hidden></div>
+
+          <div id="fieldsets"></div>
+
+          <div class="form-doc__nav">
+            <span class="form-doc__save" id="saveState">черновик сохраняется автоматически</span>
+            <button class="btn btn--primary btn--lg" type="submit" id="submitApp">
+              Отправить на рассмотрение <span class="btn__spin"></span>
+            </button>
+          </div>
+
+          <p class="fs-xxs mono muted mt-4" style="line-height:1.8">
+            Заявку рассматривает распорядитель игры. Решение придёт на экран
+            автоматически — страницу можно не обновлять. До одобрения разделы
+            системы закрыты.
+          </p>
+
+        </form>
+      </main>
+
+      <footer class="sys-foot">
+        <span class="led" aria-hidden="true"></span>
+        <span class="sys-foot__ticker">
+          <span>審査 // Решение по анкете принимает распорядитель игры. Ложные данные — основание для отказа.</span>
+        </span>
+        <span class="hide-sm mono" id="clock">--:--:--</span>
+      </footer>
+
+    </div>
+  </div>
+
+  <script type="module" src="../js/pages/application.js?v=5"></script>
+</body>
+</html>

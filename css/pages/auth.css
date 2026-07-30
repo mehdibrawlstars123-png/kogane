@@ -1,0 +1,241 @@
+/* =========================================================
+   Auth — вход и регистрация
+   ========================================================= */
+
+/* minmax(0, …) обязателен: иначе ячейка раздувается до min-content
+   содержимого (вкладки в одну строку) и вылезает за рамку экрана. */
+.auth {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  min-height: 0;
+  position: relative;
+  z-index: 5;
+}
+
+.auth__brand,
+.auth__panel { min-width: 0; }
+
+/* ---- Левая половина: «афиша» смертельной миграции ---- */
+.auth__brand {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--sp-4);
+  padding: clamp(20px, 4vw, 56px);
+  border-right: 2px solid var(--ink-line);
+  overflow: hidden;
+}
+
+.auth__brand::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(12, 21, 3, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(12, 21, 3, 0.08) 1px, transparent 1px);
+  background-size: 32px 32px;
+  mask-image: radial-gradient(80% 70% at 40% 50%, #000, transparent);
+  -webkit-mask-image: radial-gradient(80% 70% at 40% 50%, #000, transparent);
+}
+
+.auth__jp {
+  position: relative;
+  font-family: var(--font-jp);
+  font-size: clamp(38px, 7vw, 88px);
+  line-height: 0.95;
+  letter-spacing: 0.02em;
+}
+
+.auth__title {
+  position: relative;
+  font-size: clamp(20px, 2.6vw, 34px);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.auth__lead {
+  position: relative;
+  max-width: 46ch;
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  line-height: 1.85;
+  color: var(--ink-2);
+}
+
+.auth__kogane {
+  position: absolute;
+  right: -6%;
+  bottom: -4%;
+  opacity: 0.28;
+  pointer-events: none;
+}
+
+.auth__stats {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-5);
+  margin-top: var(--sp-3);
+  padding-top: var(--sp-4);
+  border-top: 2px solid var(--ink-line);
+}
+
+/* ---- Правая половина: форма ---- */
+.auth__panel {
+  display: flex;
+  flex-direction: column;
+  padding: clamp(20px, 4vw, 48px);
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.auth__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  margin-bottom: var(--sp-5);
+  border: 2px solid var(--ink);
+}
+
+.auth__tab {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 10px 6px;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: all var(--dur-2) var(--ease);
+}
+.auth__tab + .auth__tab { border-left: 2px solid var(--ink); }
+.auth__tab:hover { background: rgba(12, 21, 3, 0.1); color: var(--ink); }
+.auth__tab.is-active { background: var(--ink); color: var(--phos-hi); }
+
+.auth__form { animation: rise-in var(--dur-3) var(--ease) both; }
+.auth__form[hidden] { display: none; }
+
+.auth__legend {
+  margin-bottom: var(--sp-4);
+  font-size: var(--fs-xxs);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.auth__note {
+  margin-top: var(--sp-4);
+  padding: var(--sp-3);
+  border: 1px dashed var(--ink-faint);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.75;
+  color: var(--ink-soft);
+}
+
+.auth__note b { color: var(--ink); }
+
+/* Предупреждение о закрытом реестре на афише */
+.auth__closed {
+  position: relative;
+  margin-top: var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+  border-left: 3px solid var(--ink);
+  font-size: 11px;
+  line-height: 1.75;
+  color: var(--ink-2);
+  max-width: 52ch;
+}
+
+/* Канал администрации выделен в отдельную вкладку */
+.auth__tab--admin { letter-spacing: 0.1em; }
+.auth__tab--admin::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 6px;
+  background: currentColor;
+  vertical-align: middle;
+}
+
+.auth__msg {
+  min-height: 20px;
+  margin-bottom: var(--sp-3);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+}
+.auth__msg.is-error { color: var(--danger-ink); animation: glitch-x 0.2s steps(2) 2; }
+.auth__msg.is-ok { color: var(--ok); }
+
+/* Шаги регистрации: почта → пароль → анкета */
+.regsteps {
+  display: flex;
+  gap: 2px;
+  margin-bottom: var(--sp-4);
+}
+
+.regstep {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 4px;
+  border: 2px solid var(--ink-faint);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  white-space: nowrap;
+  transition: all var(--dur-2) var(--ease);
+}
+
+.regstep b {
+  font-family: var(--font-jp);
+  font-size: var(--fs-sm);
+  line-height: 1;
+}
+
+.regstep.is-active {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--phos-hi);
+}
+
+.regstep.is-done { border-color: var(--ink); color: var(--ink); }
+.regstep.is-done b::after { content: " ✓"; }
+
+.regpane[hidden] { display: none; }
+.regpane { animation: rise-in var(--dur-3) var(--ease) both; }
+
+/* Индикатор надёжности пароля */
+.pwmeter {
+  display: flex;
+  gap: 3px;
+  margin-top: 4px;
+}
+.pwmeter span {
+  flex: 1;
+  height: 4px;
+  background: var(--ink-faint);
+  transition: background-color var(--dur-2) var(--ease);
+}
+.pwmeter span.is-on { background: var(--ink); }
+
+@media (max-width: 980px) {
+  /* Две половины встают друг под друга — прокручиваем весь блок целиком */
+  .auth { grid-template-columns: minmax(0, 1fr); overflow-y: auto; }
+
+  /* Третья вкладка переносится на свою строку, а не сжимается в кашу */
+  .auth__tab { flex: 1 1 45%; }
+  .auth__tab--admin { flex-basis: 100%; border-left: 0; border-top: 2px solid var(--ink); }
+  .auth__brand { border-right: 0; border-bottom: 2px solid var(--ink-line); }
+  .auth__kogane { width: 120px; opacity: 0.2; }
+  .auth__panel { overflow: visible; }
+}

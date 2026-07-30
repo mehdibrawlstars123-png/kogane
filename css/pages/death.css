@@ -1,0 +1,147 @@
+/* =========================================================
+   Death — полноэкранная анимация «Вы погибли»
+   ========================================================= */
+
+.death {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-death);
+  display: grid;
+  place-items: center;
+  background: #050202;
+  overflow: hidden;
+}
+
+/* --- Фаза 1: срыв сигнала --- */
+.death__static {
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: 0.4;
+  animation: crt-jitter 0.12s steps(2, end) infinite;
+}
+
+.death__bars {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 60, 40, 0.10) 0 3px,
+    transparent 3px 7px
+  );
+  animation: crt-sweep 1.1s linear infinite;
+}
+
+/* --- Фаза 2: контент --- */
+.death__inner {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-4);
+  text-align: center;
+  padding: var(--gutter);
+}
+
+.death__kogane {
+  width: clamp(150px, 26vw, 300px);
+  filter: drop-shadow(0 0 26px rgba(255, 70, 50, 0.5));
+  opacity: 0;
+  animation: kogane-arrive 1.1s var(--ease-crt) 0.2s forwards;
+}
+
+@keyframes kogane-arrive {
+  0%   { opacity: 0; transform: translateY(-90px) scale(0.6) }
+  60%  { opacity: 1; transform: translateY(6px) scale(1.04) }
+  100% { opacity: 1; transform: none }
+}
+
+.death__skull {
+  width: clamp(180px, 34vw, 400px);
+  color: #ff3a24;
+  filter: drop-shadow(0 0 40px rgba(255, 58, 36, 0.6));
+  opacity: 0;
+  animation: zoom-skull 1.2s var(--ease-crt) 1.1s forwards;
+}
+
+.death__jp {
+  font-family: var(--font-jp);
+  font-size: clamp(44px, 11vw, 150px);
+  line-height: 1;
+  color: #ff4a33;
+  text-shadow:
+    0 0 24px rgba(255, 74, 51, 0.7),
+    4px 0 0 rgba(190, 20, 20, 0.55),
+    -4px 0 0 rgba(30, 190, 210, 0.35);
+  opacity: 0;
+  animation: fade-in 0.5s steps(2, end) 1.6s forwards, shake-hard 0.6s steps(6, end) 1.6s;
+}
+
+.death__title {
+  font-family: var(--font-pixel);
+  font-size: clamp(26px, 7vw, 86px);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #ffd9d2;
+  text-shadow: 0 0 30px rgba(255, 60, 40, 0.8);
+  opacity: 0;
+  animation: fade-in 0.4s steps(2, end) 2.1s forwards;
+}
+
+.death__sub {
+  font-family: var(--font-mono);
+  font-size: clamp(11px, 1.6vw, 15px);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(255, 200, 190, 0.7);
+  opacity: 0;
+  animation: fade-in 0.4s linear 2.6s forwards;
+  min-height: 1.6em;
+}
+
+.death__actions {
+  margin-top: var(--sp-4);
+  opacity: 0;
+  animation: fade-in 0.4s linear 3.4s forwards;
+}
+
+.death__actions .btn {
+  border-color: #ff4a33;
+  color: #ffd9d2;
+}
+.death__actions .btn::before { background: #ff4a33; }
+.death__actions .btn:hover { color: #2b0500; }
+
+/* Тряска всего экрана в начале */
+.death.is-shaking { animation: shake-hard 0.5s steps(5, end) 2; }
+
+/* Вспышка */
+.death__flash {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  background: #fff;
+  opacity: 0;
+  pointer-events: none;
+  animation: death-flash 2.4s steps(1, end) forwards;
+}
+
+@keyframes death-flash {
+  0%   { opacity: 0.95 }
+  4%   { opacity: 0 }
+  8%   { opacity: 0.6 }
+  12%  { opacity: 0 }
+  44%  { opacity: 0 }
+  46%  { opacity: 0.4 }
+  48%  { opacity: 0 }
+  100% { opacity: 0 }
+}
+
+/* Финальный экран «аккаунт неактивен» */
+.death--final .death__skull { animation-delay: 0.2s; }
+.death--final .death__jp { animation-delay: 0.5s; }
+.death--final .death__title { animation-delay: 0.7s; }
+.death--final .death__sub { animation-delay: 0.9s; }
+.death--final .death__actions { animation-delay: 1.2s; }
+.death--final .death__kogane { animation-delay: 0s; }

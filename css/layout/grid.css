@@ -1,0 +1,37 @@
+/* =========================================================
+   Grid & Flex helpers
+   ========================================================= */
+
+.grid {
+  display: grid;
+  gap: clamp(1rem, 2.5vw, 2rem);
+}
+
+.grid--2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.grid--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.grid--4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+/* Авто-сетка без медиазапросов */
+.grid--auto {
+  grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
+}
+
+.flex        { display: flex; }
+.flex-col    { flex-direction: column; }
+.items-center{ align-items: center; }
+.justify-between { justify-content: space-between; }
+.flex-wrap   { flex-wrap: wrap; }
+.gap-2 { gap: var(--sp-2); }
+.gap-4 { gap: var(--sp-4); }
+.gap-6 { gap: var(--sp-6); }
+
+@media (max-width: 1024px) {
+  .grid--4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .grid--3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 640px) {
+  .grid--2,
+  .grid--3,
+  .grid--4 { grid-template-columns: 1fr; }
+}

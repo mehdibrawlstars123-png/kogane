@@ -1,0 +1,110 @@
+/* =========================================================
+   Nav — боковое меню системы
+   ========================================================= */
+
+.sys-nav {
+  border-right: 2px solid var(--ink-line);
+  background: rgba(12, 21, 3, 0.05);
+  padding: var(--sp-3) 0;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.sys-nav__group + .sys-nav__group { margin-top: var(--sp-4); }
+
+.sys-nav__caption {
+  padding: 0 var(--sp-4) var(--sp-1);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.navitem {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  width: 100%;
+  padding: var(--sp-2) var(--sp-4);
+  text-align: left;
+  font-size: var(--fs-xs);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  transition: color var(--dur-2) var(--ease), background-color var(--dur-2) var(--ease);
+}
+
+.navitem__jp {
+  margin-left: auto;
+  font-family: var(--font-jp);
+  font-size: var(--fs-sm);
+  opacity: 0.55;
+}
+
+/* Пиксельный маркер выбора */
+.navitem::before {
+  content: "";
+  width: 0;
+  height: 12px;
+  background: var(--ink);
+  transition: width var(--dur-2) var(--ease-step);
+  flex-shrink: 0;
+}
+
+.navitem:hover {
+  color: var(--ink);
+  background: rgba(12, 21, 3, 0.10);
+}
+.navitem:hover::before { width: 4px; }
+
+.navitem.is-active {
+  color: var(--ink);
+  background: var(--ink);
+  color: var(--phos-hi);
+}
+.navitem.is-active::before { width: 8px; background: var(--phos-hi); }
+.navitem.is-active .navitem__jp { opacity: 0.85; }
+
+.navitem[disabled] { opacity: 0.35; pointer-events: none; }
+
+/* Бейдж счётчика */
+.navitem__badge {
+  min-width: 18px;
+  padding: 0 4px;
+  text-align: center;
+  font-size: 10px;
+  line-height: 16px;
+  background: var(--ink);
+  color: var(--phos-hi);
+}
+.navitem.is-active .navitem__badge { background: var(--phos-hi); color: var(--ink); }
+
+/* Кнопка меню на мобильных */
+.nav-toggle {
+  display: none;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
+  border: 2px solid var(--ink-line);
+  font-size: var(--fs-xxs);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+
+@media (max-width: 900px) {
+  .nav-toggle { display: inline-flex; }
+
+  .sys-nav {
+    position: absolute;
+    inset: 0 auto 0 0;
+    z-index: 30;
+    width: 260px;
+    background: var(--phos);
+    border-right: 2px solid var(--ink);
+    transform: translateX(-102%);
+    transition: transform var(--dur-3) var(--ease-crt);
+    box-shadow: 8px 0 32px rgba(12, 21, 3, 0.25);
+  }
+  .sys-nav.is-open { transform: none; }
+}

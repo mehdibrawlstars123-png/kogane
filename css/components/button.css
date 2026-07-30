@@ -1,0 +1,101 @@
+/* =========================================================
+   Button — пиксельная кнопка терминала
+   ========================================================= */
+
+.btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  padding: 10px 20px;
+  border: 2px solid var(--ink);
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--font-pixel);
+  font-size: var(--fs-xs);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  isolation: isolate;
+  transition: color var(--dur-2) var(--ease);
+}
+
+/* Заливка «строчной развёрткой» при наведении */
+.btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--ink);
+  clip-path: inset(50% 0 50% 0);
+  transition: clip-path var(--dur-2) var(--ease-step);
+}
+
+.btn:hover { color: var(--phos-hi); }
+.btn:hover::before { clip-path: inset(0 0 0 0); }
+
+.btn:active { transform: translate(1px, 1px); }
+
+/* Мигающие уголки */
+.btn::after {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border: 1px dashed rgba(12, 21, 3, 0.4);
+  opacity: 0;
+  transition: opacity var(--dur-2) var(--ease);
+  pointer-events: none;
+}
+.btn:hover::after { opacity: 0.5; border-color: rgba(226, 250, 125, 0.5); }
+
+/* ---- Варианты ---- */
+.btn--primary {
+  background: var(--ink);
+  color: var(--phos-hi);
+}
+.btn--primary::before { background: var(--phos-hi); }
+.btn--primary:hover { color: var(--ink); }
+
+.btn--ghost { border-color: var(--ink-faint); color: var(--ink-soft); }
+.btn--ghost:hover { border-color: var(--ink); }
+
+.btn--danger { border-color: var(--danger); color: var(--danger-ink); }
+.btn--danger::before { background: var(--danger); }
+.btn--danger:hover { color: #fff2ef; }
+
+.btn--sm { padding: 6px 12px; font-size: 10px; letter-spacing: 0.12em; }
+.btn--lg { padding: 14px 32px; font-size: var(--fs-sm); }
+.btn--wide { width: 100%; }
+.btn--bare { border: 0; padding: 4px 6px; }
+.btn--bare::after { display: none; }
+
+.btn[disabled], .btn.is-busy {
+  opacity: 0.42;
+  pointer-events: none;
+}
+
+.btn.is-busy::first-line { color: inherit; }
+
+/* Индикатор обработки */
+.btn.is-busy .btn__spin,
+.btn__spin {
+  display: none;
+  width: 10px;
+  height: 10px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  animation: spin-slow 0.6s linear infinite;
+}
+.btn.is-busy .btn__spin { display: block; }
+
+/* Группа кнопок */
+.btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+/* Пиксельная иконка-стрелка */
+.btn__arrow { font-family: var(--font-jp); }

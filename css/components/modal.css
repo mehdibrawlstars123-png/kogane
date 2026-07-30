@@ -1,0 +1,101 @@
+/* =========================================================
+   Modal — окно системы
+   ========================================================= */
+
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: grid;
+  place-items: center;
+  padding: var(--gutter);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--dur-2) var(--ease), visibility var(--dur-2) var(--ease);
+}
+
+.modal.is-open { opacity: 1; visibility: visible; }
+
+.modal__veil {
+  position: absolute;
+  inset: 0;
+  background: rgba(4, 20, 15, 0.82);
+  backdrop-filter: blur(2px) saturate(140%);
+}
+
+.modal__win {
+  position: relative;
+  width: min(760px, 100%);
+  max-height: 86dvh;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg, var(--phos-hi), var(--phos) 30%, var(--phos-lo));
+  border: 2px solid var(--ink);
+  box-shadow:
+    0 0 0 6px rgba(4, 20, 15, 0.9),
+    0 0 40px var(--glow-soft),
+    0 0 140px rgba(166, 255, 77, 0.14);
+  clip-path: inset(50% 0 50% 0);
+  transition: clip-path var(--dur-3) var(--ease-crt);
+  overflow: hidden;
+}
+
+.modal.is-open .modal__win { clip-path: inset(0 0 0 0); }
+
+.modal__win::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(12, 21, 3, 0) 0 2px,
+    rgba(12, 21, 3, 0.12) 3px 4px
+  );
+}
+
+.modal__head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+  border-bottom: 2px solid var(--ink);
+  background: rgba(12, 21, 3, 0.12);
+}
+
+.modal__title {
+  font-size: var(--fs-xs);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.modal__jp { font-family: var(--font-jp); font-size: var(--fs-sm); opacity: 0.6; }
+
+.modal__close {
+  margin-left: auto;
+  width: 26px;
+  height: 26px;
+  border: 2px solid var(--ink);
+  font-size: var(--fs-xs);
+  line-height: 1;
+  transition: background-color var(--dur-2) var(--ease), color var(--dur-2) var(--ease);
+}
+.modal__close:hover { background: var(--danger); color: #fff; border-color: var(--danger); }
+
+.modal__body {
+  padding: var(--sp-4);
+  overflow-y: auto;
+  position: relative;
+  z-index: 1;
+}
+
+.modal__foot {
+  display: flex;
+  gap: var(--sp-2);
+  padding: var(--sp-3);
+  border-top: 2px solid var(--ink-line);
+  background: rgba(12, 21, 3, 0.08);
+}
+.modal__foot .btn:first-child { margin-right: auto; }
+
+.modal--wide .modal__win { width: min(1080px, 100%); }
+.modal--narrow .modal__win { width: min(480px, 100%); }

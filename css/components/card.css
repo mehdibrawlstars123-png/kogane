@@ -1,0 +1,156 @@
+/* =========================================================
+   Card — карточка участника (как блок на кадре аниме)
+   ========================================================= */
+
+.pcard {
+  position: relative;
+  border: 2px solid var(--ink-line);
+  background: rgba(255, 255, 255, 0.06);
+  padding: var(--sp-4);
+}
+
+/* Верх карточки: иконка + имя + японское имя */
+.pcard__top {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  padding-bottom: var(--sp-3);
+  border-bottom: 2px solid var(--ink-line);
+}
+
+.pcard__ident { min-width: 0; }
+
+.pcard__name {
+  font-size: var(--fs-lg);
+  letter-spacing: 0.06em;
+}
+
+.pcard__jp {
+  font-family: var(--font-jp);
+  font-size: var(--fs-2xl);
+  line-height: 1;
+  opacity: 0.8;
+}
+
+.pcard__mark { margin-left: auto; text-align: right; }
+
+/* Сетка «Очки / Правил / Колония» — точная композиция кадра */
+.readout {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(170px, 100%), 1fr));
+  gap: var(--sp-3) var(--sp-5);
+  padding-top: var(--sp-3);
+}
+
+.readout__item { min-width: 0; }
+
+.readout__key {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  font-size: var(--fs-xxs);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.readout__key .jp { font-size: var(--fs-xs); opacity: 0.7; }
+
+.readout__val {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  font-family: var(--font-jp);
+  font-size: var(--fs-2xl);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.readout__val small {
+  font-size: var(--fs-sm);
+  opacity: 0.65;
+}
+
+.readout__val--sm { font-size: var(--fs-lg); }
+
+/* Мини-плитка статистики */
+.tile {
+  border: 2px solid var(--ink-line);
+  background: rgba(255, 255, 255, 0.06);
+  padding: var(--sp-3);
+  transition: border-color var(--dur-2) var(--ease), background-color var(--dur-2) var(--ease);
+}
+.tile:hover { border-color: var(--ink); background: rgba(255, 255, 255, 0.12); }
+
+.tile__key {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.tile__key .jp { font-size: var(--fs-xs); }
+
+.tile__val {
+  margin-top: var(--sp-1);
+  font-family: var(--font-jp);
+  font-size: var(--fs-xl);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.tile__val--text { font-size: var(--fs-base); }
+
+/* Полоса-индикатор (например, до конца миграции) */
+.bar {
+  height: 10px;
+  border: 2px solid var(--ink-faint);
+  padding: 1px;
+}
+.bar__fill {
+  height: 100%;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--ink) 0 4px,
+    transparent 4px 6px
+  );
+  width: var(--fill, 0%);
+  transition: width var(--dur-4) var(--ease);
+}
+
+/* Статус */
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  border: 1px solid var(--ink);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.status--active { background: var(--ink); color: var(--phos-hi); }
+.status--pending { border-style: dashed; color: var(--ink-soft); }
+.status--dead { border-color: var(--danger); color: var(--danger-ink); background: rgba(184, 31, 20, 0.12); }
+.status--out { opacity: 0.6; }
+
+/* Уровень магии */
+.grade {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  font-family: var(--font-jp);
+}
+.grade__jp { font-size: var(--fs-lg); line-height: 1; }
+.grade__ru { font-size: var(--fs-xxs); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-soft); }
+
+/* Блок текста анкеты */
+.prose {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  line-height: 1.75;
+  white-space: pre-wrap;
+  word-break: break-word;
+}

@@ -1,0 +1,190 @@
+/* =========================================================
+   Application — анкета персонажа
+   ========================================================= */
+
+.form-doc {
+  max-width: 980px;
+  margin-inline: auto;
+  padding: var(--sp-5) var(--gutter) var(--sp-8);
+}
+
+.form-doc__head {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--sp-4);
+  padding-bottom: var(--sp-3);
+  margin-bottom: var(--sp-5);
+  border-bottom: 3px double var(--ink-line);
+}
+
+.form-doc__jp {
+  font-family: var(--font-jp);
+  font-size: clamp(26px, 5vw, 52px);
+  line-height: 1;
+}
+
+.form-doc__title {
+  font-size: var(--fs-lg);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.form-doc__no {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--ink-soft);
+  text-align: right;
+}
+
+/* Шаги анкеты */
+.steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1);
+  margin-bottom: var(--sp-5);
+}
+
+.step {
+  flex: 1;
+  min-width: 90px;
+  padding: 6px 8px;
+  border: 2px solid var(--ink-faint);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  text-align: center;
+  transition: all var(--dur-2) var(--ease);
+}
+.step.is-active { border-color: var(--ink); background: var(--ink); color: var(--phos-hi); }
+.step.is-done { border-color: var(--ink); color: var(--ink); }
+.step.is-done::after { content: " \2713"; }
+
+/* Блок анкеты */
+.fset {
+  margin-bottom: var(--sp-6);
+  animation: panel-in var(--dur-4) var(--ease-crt) both;
+}
+
+.fset__legend {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-4);
+  padding-bottom: var(--sp-1);
+  border-bottom: 2px solid var(--ink-line);
+}
+
+.fset__no {
+  font-family: var(--font-jp);
+  font-size: var(--fs-lg);
+  opacity: 0.55;
+}
+
+.fset__title {
+  font-size: var(--fs-sm);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.fset__jp {
+  margin-left: auto;
+  font-family: var(--font-jp);
+  font-size: var(--fs-lg);
+  opacity: 0.5;
+}
+
+.fset[hidden] { display: none; }
+
+/* Навигация по анкете */
+.form-doc__nav {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding-top: var(--sp-4);
+  border-top: 2px solid var(--ink-line);
+}
+.form-doc__nav .btn:last-child { margin-left: auto; }
+
+.form-doc__save {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--ink-faint);
+}
+
+/* ---- Статус анкеты ---- */
+.verdict {
+  max-width: 760px;
+  margin: clamp(24px, 8vh, 90px) auto;
+  padding: var(--gutter);
+  text-align: center;
+}
+
+.verdict__jp {
+  font-family: var(--font-jp);
+  font-size: clamp(40px, 9vw, 104px);
+  line-height: 1;
+  opacity: 0.85;
+}
+
+.verdict__title {
+  margin-top: var(--sp-3);
+  font-size: clamp(18px, 3vw, 30px);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.verdict__text {
+  margin: var(--sp-4) auto 0;
+  max-width: 52ch;
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  line-height: 1.9;
+  color: var(--ink-2);
+}
+
+.verdict__wait {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-3);
+  margin-top: var(--sp-5);
+  padding: var(--sp-2) var(--sp-4);
+  border: 2px dashed var(--ink-faint);
+  font-size: var(--fs-xxs);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.verdict__wait::after {
+  content: "";
+  animation: dots 1.4s steps(1, end) infinite;
+}
+
+/* Предпросмотр анкеты */
+.preview {
+  margin-top: var(--sp-5);
+  text-align: left;
+  border: 2px solid var(--ink-line);
+}
+.preview__row {
+  display: grid;
+  grid-template-columns: 210px minmax(0, 1fr);
+  gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+  border-bottom: 1px dashed var(--ink-faint);
+  font-size: var(--fs-xs);
+}
+.preview__key {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.preview__val { white-space: pre-wrap; word-break: break-word; font-family: var(--font-mono); line-height: 1.7; }
+
+@media (max-width: 700px) {
+  .preview__row { grid-template-columns: 1fr; gap: 2px; }
+}

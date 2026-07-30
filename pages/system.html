@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ru" data-crt="on">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#04140f" />
+  <title>КОГАНЭ // 死滅回游 管理システム</title>
+
+  <link rel="icon" href="../assets/icons/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/main.css?v=5" />
+</head>
+
+<body>
+  <a class="skip" href="#main">К содержимому</a>
+
+  <div class="stage">
+    <div class="screen" id="screen">
+
+      <!-- ============ ШАПКА ============ -->
+      <header class="sys-head">
+        <div class="sys-head__brand">
+          <button class="nav-toggle" type="button" id="navToggle" aria-label="Меню разделов">
+            <span>МЕНЮ</span><span class="jp">目次</span>
+          </button>
+          <span class="led" aria-hidden="true"></span>
+          <span class="sys-head__jp jp">死滅回游</span>
+          <span class="sys-head__title hide-sm">Система Коганэ</span>
+        </div>
+
+        <div class="sys-head__meta">
+          <span class="hide-sm">Участник: <b id="hName">—</b></span>
+          <span>Очки: <b id="hPoints">000</b></span>
+          <span class="hide-sm">Правил: <b id="hRules">00</b></span>
+          <span id="headTools"></span>
+        </div>
+      </header>
+
+      <!-- ============ ТЕЛО ============ -->
+      <div class="sys-body">
+
+        <!-- Меню разделов -->
+        <nav class="sys-nav" id="nav" aria-label="Разделы системы">
+          <div class="sys-nav__group">
+            <div class="sys-nav__caption">Основное</div>
+            <button class="navitem is-active" type="button" data-view="home">
+              Главная <span class="navitem__jp jp">基本情報</span>
+            </button>
+            <button class="navitem" type="button" data-view="profile">
+              Профиль участника <span class="navitem__jp jp">個人情報</span>
+            </button>
+          </div>
+
+          <div class="sys-nav__group">
+            <div class="sys-nav__caption">Реестр</div>
+            <button class="navitem" type="button" data-view="roster">
+              Таблица участников <span class="navitem__jp jp">泳者一覧</span>
+            </button>
+            <button class="navitem" type="button" data-view="search">
+              Поиск участников <span class="navitem__jp jp">検索</span>
+            </button>
+          </div>
+
+          <div class="sys-nav__group">
+            <div class="sys-nav__caption">Правила</div>
+            <button class="navitem" type="button" data-view="shop">
+              Магазин правил <span class="navitem__jp jp">規則購入</span>
+            </button>
+            <button class="navitem" type="button" data-view="rules">
+              История правил <span class="navitem__jp jp">規則履歴</span>
+            </button>
+          </div>
+
+          <div class="sys-nav__group">
+            <div class="sys-nav__caption">Связь</div>
+            <button class="navitem" type="button" data-view="notices">
+              История уведомлений
+              <span class="navitem__badge" id="noticeBadge" hidden>0</span>
+              <span class="navitem__jp jp">通知</span>
+            </button>
+            <button class="navitem" type="button" data-view="admin">
+              Система администрации <span class="navitem__jp jp">管理</span>
+            </button>
+          </div>
+        </nav>
+
+        <!-- Разделы -->
+        <main class="sys-main" id="main">
+          <section class="view" id="view-home"></section>
+          <section class="view" id="view-profile" hidden></section>
+          <section class="view" id="view-roster" hidden></section>
+          <section class="view" id="view-search" hidden></section>
+          <section class="view" id="view-shop" hidden></section>
+          <section class="view" id="view-rules" hidden></section>
+          <section class="view" id="view-notices" hidden></section>
+          <section class="view" id="view-admin" hidden></section>
+        </main>
+      </div>
+
+      <!-- ============ ПОДВАЛ ============ -->
+      <footer class="sys-foot">
+        <span class="led" aria-hidden="true"></span>
+        <span class="sys-foot__ticker"><span id="ticker">天元 // Связь с барьерами устойчива.</span></span>
+        <span class="hide-sm mono" id="clock">--:--:--</span>
+      </footer>
+
+    </div>
+  </div>
+
+  <script type="module" src="../js/pages/system.js?v=5"></script>
+</body>
+</html>

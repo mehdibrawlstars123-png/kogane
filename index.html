@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="ru" data-crt="on">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#04140f" />
+  <meta name="description" content="Система Коганэ — управление Смертельной миграцией. 死滅回游 管理システム" />
+  <title>КОГАНЭ // 死滅回游 管理システム</title>
+
+  <link rel="icon" href="assets/icons/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/main.css?v=5" />
+</head>
+
+<body>
+  <a class="skip" href="#auth">К форме входа</a>
+
+  <!-- ============ ЗАГРУЗКА СИСТЕМЫ ============ -->
+  <div class="boot" id="boot">
+    <div class="boot__log" id="bootLog"></div>
+    <div class="boot__bar"><div class="boot__fill" id="bootFill"></div></div>
+    <div class="boot__skip">Нажмите любую клавишу, чтобы пропустить инициализацию</div>
+  </div>
+
+  <!-- ============ ПОДКЛЮЧЕНИЕ К БАРЬЕРУ ============ -->
+  <div class="connect" id="connect" hidden>
+    <div class="barrier" aria-hidden="true">
+      <div class="barrier__grid"></div>
+      <div class="barrier__ring"></div>
+      <div class="barrier__ring"></div>
+      <div class="barrier__ring"></div>
+      <div class="barrier__ring"></div>
+    </div>
+    <div class="connect__inner">
+      <div class="connect__jp" id="connectJp">接続中</div>
+      <div class="connect__step" id="connectStep"></div>
+      <div class="connect__sub" id="connectSub">KOGANE LINK / TENGEN BARRIER NETWORK</div>
+      <div class="connect__bar"><div class="connect__fill" id="connectFill"></div></div>
+      <button class="connect__skip" type="button" id="connectSkip">Продолжить →</button>
+    </div>
+  </div>
+
+  <!-- Аварийные выходы. Обычный скрипт, не модуль: работает даже если
+       модули не загрузились или браузер отдал их из старого кеша. -->
+  <script>
+  (function () {
+    var connect = document.getElementById('connect');
+    var skip = document.getElementById('connectSkip');
+    var boot = document.getElementById('boot');
+
+    // Переход в систему: её собственная проверка доступа отправит
+    // участника на нужный экран (анкета, ожидание или админка).
+    function leave() { window.location.replace('pages/system.html'); }
+
+    if (skip && connect) {
+      skip.addEventListener('click', function () {
+        // Если модуль жив, он сам знает точный адрес перехода
+        if (window.__koganeConnect) return;
+        leave();
+      });
+    }
+
+    // Экран подключения не должен держать дольше десяти секунд
+    if (connect) {
+      new MutationObserver(function () {
+        if (connect.hidden) return;
+        setTimeout(function () {
+          if (!connect.hidden && document.body.contains(connect)) leave();
+        }, 10000);
+      }).observe(connect, { attributes: true, attributeFilter: ['hidden'] });
+    }
+
+    // Загрузочный экран убирается по клику или клавише
+    if (boot) {
+      var dropBoot = function () { if (boot.parentNode) boot.remove(); };
+      boot.addEventListener('click', dropBoot);
+      window.addEventListener('keydown', dropBoot, { once: true });
+      setTimeout(dropBoot, 12000);
+    }
+  })();
+  </script>
+
+  <!-- ============ ЭКРАН ============ -->
+  <div class="stage">
+    <div class="screen" id="screen">
+
+      <header class="sys-head">
+        <div class="sys-head__brand">
+          <span class="led" aria-hidden="true"></span>
+          <span class="sys-head__jp jp">死滅回游</span>
+          <span class="sys-head__title">Система Коганэ</span>
+        </div>
+        <div class="sys-head__meta">
+          <span class="hide-sm">Барьеров: <b>10</b></span>
+          <span class="hide-sm">Реестр: <b>закрыт</b></span>
+          <span>Доступ: <b>по авторизации</b></span>
+          <button class="btn btn--sm btn--ghost" type="button" id="crtToggle">CRT</button>
+        </div>
+      </header>
+
+      <main class="auth" id="auth">
+
+        <!-- Левая часть: афиша -->
+        <section class="auth__brand">
+          <div class="auth__jp jp chroma">死滅回游</div>
+          <h1 class="auth__title">Смертельная миграция</h1>
+          <p class="auth__lead">
+            Барьеры развёрнуты над десятью колониями. Каждый, кто оказался внутри
+            и владеет проклятой техникой, признан участником игры. Отказ невозможен.
+            Объявите о начале игры в течение девятнадцати дней — иначе техника будет изъята.
+          </p>
+
+          <div class="auth__stats">
+            <div>
+              <span class="label">Реестр участников</span>
+              <span class="value jp">認証要求</span>
+            </div>
+            <div>
+              <span class="label">Колоний</span>
+              <span class="value jp">10</span>
+            </div>
+            <div>
+              <span class="label">Доступ</span>
+              <span class="value jp">未承認</span>
+            </div>
+          </div>
+
+          <p class="auth__closed mono">
+            Реестр участников, свод правил и таблица очков закрыты до авторизации.
+            Данные откроются после одобрения анкеты распорядителем игры.
+          </p>
+
+          <div class="auth__kogane" id="brandKogane" aria-hidden="true"></div>
+        </section>
+
+        <!-- Правая часть: вход / регистрация -->
+        <section class="auth__panel">
+          <div class="auth__tabs" role="tablist">
+            <button class="auth__tab is-active" type="button" data-tab="login" role="tab">Вход</button>
+            <button class="auth__tab" type="button" data-tab="register" role="tab">Регистрация</button>
+            <button class="auth__tab auth__tab--admin" type="button" data-tab="admin" role="tab">
+              Администрация
+            </button>
+          </div>
+
+          <p class="auth__msg" id="authMsg" role="status" aria-live="polite"></p>
+
+          <!-- Вход -->
+          <form class="auth__form" id="loginForm" novalidate>
+            <p class="auth__legend">認証 // Идентификация участника</p>
+
+            <label class="field" for="loginEmail">
+              <span class="field__label">Почта <span class="jp">電子郵便</span></span>
+              <span class="field__wrap">
+                <input class="field__input" id="loginEmail" name="email" type="email"
+                       autocomplete="email" placeholder="participant@kogane.jp" />
+              </span>
+              <span class="field__error" data-err="email"></span>
+            </label>
+
+            <label class="field" for="loginPass">
+              <span class="field__label">Пароль <span class="jp">暗号</span></span>
+              <span class="field__wrap">
+                <input class="field__input" id="loginPass" name="password" type="password"
+                       autocomplete="current-password" placeholder="••••••" />
+              </span>
+              <span class="field__error" data-err="password"></span>
+            </label>
+
+            <button class="btn btn--primary btn--wide btn--lg" type="submit">
+              Подключиться <span class="btn__spin"></span>
+            </button>
+
+            <div class="auth__note">
+              Вход открыт участникам, чью анкету одобрил распорядитель игры.
+              Если анкета ещё на рассмотрении — система покажет её состояние.
+            </div>
+          </form>
+
+          <!-- Регистрация: почта → пароль → анкета -->
+          <form class="auth__form" id="registerForm" novalidate hidden>
+            <p class="auth__legend">登録申請 // Внесение в реестр барьера</p>
+
+            <div class="regsteps" id="regSteps">
+              <span class="regstep is-active" data-rs="1"><b>1</b> Почта</span>
+              <span class="regstep" data-rs="2"><b>2</b> Пароль</span>
+              <span class="regstep" data-rs="3"><b>3</b> Анкета</span>
+            </div>
+
+            <!-- Шаг 1: почта -->
+            <div class="regpane" data-pane="1">
+              <label class="field" for="regEmail">
+                <span class="field__label">Электронная почта <span class="jp">電子郵便</span> <span class="field__req">*</span></span>
+                <span class="field__wrap">
+                  <input class="field__input" id="regEmail" name="email" type="email"
+                         autocomplete="email" placeholder="participant@kogane.jp" />
+                </span>
+                <span class="field__hint"><span>На эту почту привязывается аккаунт участника</span></span>
+                <span class="field__error" data-err="email"></span>
+              </label>
+
+              <button class="btn btn--primary btn--wide btn--lg" type="button" data-rnext="2">
+                Далее → создать пароль
+              </button>
+            </div>
+
+            <!-- Шаг 2: пароль -->
+            <div class="regpane" data-pane="2" hidden>
+              <p class="fs-xxs muted mono mb-3" id="regMailEcho"></p>
+
+              <label class="field" for="regPass">
+                <span class="field__label">Создайте пароль <span class="jp">暗号</span> <span class="field__req">*</span></span>
+                <span class="field__wrap">
+                  <input class="field__input" id="regPass" name="password" type="password"
+                         autocomplete="new-password" placeholder="не короче 6 символов" />
+                </span>
+                <span class="pwmeter" id="pwMeter" aria-hidden="true">
+                  <span></span><span></span><span></span><span></span>
+                </span>
+                <span class="field__error" data-err="password"></span>
+              </label>
+
+              <label class="field" for="regPass2">
+                <span class="field__label">Повторите пароль <span class="jp">確認</span> <span class="field__req">*</span></span>
+                <span class="field__wrap">
+                  <input class="field__input" id="regPass2" name="passwordConfirm" type="password"
+                         autocomplete="new-password" placeholder="ещё раз" />
+                </span>
+                <span class="field__error" data-err="passwordConfirm"></span>
+              </label>
+
+              <div class="btn-row">
+                <button class="btn btn--ghost btn--sm" type="button" data-rback="1">← Назад</button>
+                <button class="btn btn--primary grow" type="submit">
+                  Далее → анкета <span class="btn__spin"></span>
+                </button>
+              </div>
+            </div>
+
+            <div class="auth__note">
+              Третий шаг — анкета персонажа: имя, уровень, проклятая техника, ники
+              в Roblox и Discord. Заявку рассматривает распорядитель игры: до
+              одобрения разделы системы закрыты.
+            </div>
+          </form>
+
+          <!-- Администрация: почта + пароль + секретный код -->
+          <form class="auth__form" id="adminForm" novalidate hidden>
+            <p class="auth__legend">管理者権限 // Канал распорядителя игры</p>
+
+            <label class="field" for="admEmail">
+              <span class="field__label">Почта распорядителя <span class="jp">管理者</span></span>
+              <span class="field__wrap">
+                <input class="field__input" id="admEmail" name="email" type="email"
+                       autocomplete="username" placeholder="admin@kogane.jp" />
+              </span>
+              <span class="field__error" data-err="email"></span>
+            </label>
+
+            <label class="field" for="admPass">
+              <span class="field__label">Пароль <span class="jp">暗号</span></span>
+              <span class="field__wrap">
+                <input class="field__input" id="admPass" name="password" type="password"
+                       autocomplete="current-password" placeholder="••••••" />
+              </span>
+              <span class="field__error" data-err="password"></span>
+            </label>
+
+            <label class="field" for="admCode">
+              <span class="field__label">Секретный код системы <span class="jp">秘密符号</span></span>
+              <span class="field__wrap">
+                <input class="field__input" id="admCode" name="code" type="password"
+                       autocomplete="off" spellcheck="false" placeholder="код администрации" />
+              </span>
+              <span class="field__error" data-err="code"></span>
+            </label>
+
+            <button class="btn btn--primary btn--wide btn--lg" type="submit">
+              Открыть панель <span class="btn__spin"></span>
+            </button>
+
+            <div class="auth__note" id="admHint">
+              Без верного кода панель не открывается, а попытка попадает в журнал системы.
+            </div>
+          </form>
+        </section>
+      </main>
+
+      <footer class="sys-foot">
+        <span class="led" aria-hidden="true"></span>
+        <span class="sys-foot__ticker">
+          <span id="ticker">天元 // Сеть барьеров функционирует. Ожидание подключения участника.</span>
+        </span>
+        <span class="hide-sm mono" id="clock">--:--:--</span>
+      </footer>
+
+    </div>
+  </div>
+
+  <script type="module" src="js/pages/auth.js?v=5"></script>
+</body>
+</html>
