@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/main.css?v=5" />
+  <link rel="stylesheet" href="css/main.css?v=6" />
 </head>
 
 <body>
@@ -137,6 +137,14 @@
 
         <!-- Правая часть: вход / регистрация -->
         <section class="auth__panel">
+         <div class="panel panel--framed auth__box">
+          <div class="panel__head">
+            <span class="panel__title">Доступ к системе</span>
+            <span class="panel__jp jp">接続要求</span>
+            <span class="panel__tools fs-xxs muted">認証</span>
+          </div>
+          <div class="panel__body">
+
           <div class="auth__tabs" role="tablist">
             <button class="auth__tab is-active" type="button" data-tab="login" role="tab">Вход</button>
             <button class="auth__tab" type="button" data-tab="register" role="tab">Регистрация</button>
@@ -285,6 +293,9 @@
               Без верного кода панель не открывается, а попытка попадает в журнал системы.
             </div>
           </form>
+
+          </div>
+         </div>
         </section>
       </main>
 
@@ -299,6 +310,6 @@
     </div>
   </div>
 
-  <script type="module" src="js/pages/auth.js?v=5"></script>
+  <script type="module" src="js/pages/auth.js?v=6"></script>
 </body>
 </html>

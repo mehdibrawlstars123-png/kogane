@@ -86,10 +86,19 @@
 .auth__panel {
   display: flex;
   flex-direction: column;
-  padding: clamp(20px, 4vw, 48px);
+  justify-content: center;
+  padding: clamp(16px, 3vw, 36px);
   overflow-y: auto;
   min-height: 0;
 }
+
+/* Формы живут в такой же рамочной панели, как разделы системы */
+.auth__box {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.auth__box .panel__body { padding: clamp(16px, 2.4vw, 28px); }
 
 .auth__tabs {
   display: flex;

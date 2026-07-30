@@ -1,0 +1,32 @@
+# Конфигурация Render для статического сайта.
+# Собирать нечего: это чистые HTML/CSS/JS без сборщика,
+# публикуется корень репозитория как есть.
+
+services:
+  - type: web
+    name: kogane
+    runtime: static
+
+    # Сборки нет — команда пустая
+    buildCommand: ""
+
+    # Корень репозитория: index.html лежит прямо в нём
+    staticPublishPath: .
+
+    pullRequestPreviewsEnabled: false
+
+    headers:
+      # Разметку не кешируем: правки видны сразу после деплоя
+      - path: /*.html
+        name: Cache-Control
+        value: no-cache
+      # Стили и скрипты помечены версией ?v=N, их можно держать в кеше
+      - path: /css/*
+        name: Cache-Control
+        value: public, max-age=3600
+      - path: /js/*
+        name: Cache-Control
+        value: public, max-age=3600
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
