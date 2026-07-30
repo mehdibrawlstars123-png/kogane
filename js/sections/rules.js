@@ -2,10 +2,10 @@
  * Раздел «История правил» — свод базовых правил + журнал изменений.
  */
 
-import { $$, on } from '../core/dom.js?v=6';
-import { store } from '../core/store.js?v=6';
-import { esc, dt, pts } from '../core/format.js?v=6';
-import { colonyById, JP } from '../data/labels.js?v=6';
+import { $$, on } from '../core/dom.js?v=7';
+import { store } from '../core/store.js?v=7';
+import { esc, dt, pts } from '../core/format.js?v=7';
+import { colonyById, JP } from '../data/labels.js?v=7';
 
 const TAG = {
   base: { ru: 'Базовое', cls: 'hrow__tag--base' },

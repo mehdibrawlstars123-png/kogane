@@ -3,7 +3,7 @@
  * Разметка вставляется в body, чтобы не дублировать её в HTML.
  */
 
-import { storage } from '../utils/storage.js?v=6';
+import { storage } from '../utils/storage.js?v=7';
 
 const LAYERS = [
   'crt-scanlines',

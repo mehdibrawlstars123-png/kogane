@@ -2,17 +2,17 @@
  * Страница входа: загрузка системы → вход/регистрация → подключение к барьеру.
  */
 
-import { $, $$, on } from '../core/dom.js?v=6';
-import { store, DEFAULT_ADMIN_CODE } from '../core/store.js?v=6';
-import { auth } from '../core/auth.js?v=6';
-import { crt } from '../core/crt.js?v=6';
-import { audio } from '../core/audio.js?v=6';
-import { kogane } from '../core/sprites.js?v=6';
-import { typeLines, type, wait } from '../core/typewriter.js?v=6';
-import { wireSounds } from '../core/ui.js?v=6';
-import { connectSequence } from '../modules/connect.js?v=6';
-import { storage } from '../utils/storage.js?v=6';
-import { trace } from '../core/trace.js?v=6';
+import { $, $$, on } from '../core/dom.js?v=7';
+import { store, DEFAULT_ADMIN_CODE } from '../core/store.js?v=7';
+import { auth } from '../core/auth.js?v=7';
+import { crt } from '../core/crt.js?v=7';
+import { audio } from '../core/audio.js?v=7';
+import { kogane } from '../core/sprites.js?v=7';
+import { typeLines, type, wait } from '../core/typewriter.js?v=7';
+import { wireSounds } from '../core/ui.js?v=7';
+import { connectSequence } from '../modules/connect.js?v=7';
+import { storage } from '../utils/storage.js?v=7';
+import { trace } from '../core/trace.js?v=7';
 
 store.init();
 crt.init();

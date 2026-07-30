@@ -3,6 +3,6 @@
  * чтобы страница подчинялась общим настройкам CRT.
  */
 
-import { crt } from '../core/crt.js?v=6';
+import { crt } from '../core/crt.js?v=7';
 
 crt.init();

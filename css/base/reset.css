@@ -5,6 +5,12 @@
 *, *::before, *::after { box-sizing: border-box; }
 * { margin: 0; padding: 0; }
 
+/* Атрибут hidden обязан скрывать элемент.
+   Правило браузера [hidden]{display:none} лежит в его собственной таблице
+   стилей, а любое наше правило вида .connect{display:grid} перебивает её —
+   элемент с hidden оставался на экране и перекрывал страницу. */
+[hidden] { display: none !important; }
+
 html {
   -webkit-text-size-adjust: 100%;
   background: var(--bg);

@@ -180,7 +180,7 @@
     { path: 'js/modules/connect.js',   marker: '__koganeConnect',        why: 'обработчик кнопки «Продолжить»' },
     { path: 'js/pages/auth.js',        marker: 'function regStep',       why: 'пошаговая регистрация' },
     { path: 'js/core/store.js',        marker: 'checkAdminCode',         why: 'секретный код администрации' },
-    { path: 'css/main.css',            marker: 'variables.css?v=6',      why: 'версии стилей' },
+    { path: 'css/main.css',            marker: 'variables.css?v=7',      why: 'версии стилей' },
     { path: 'pages/system.html' },
     { path: 'pages/application.html' },
     { path: 'pages/pending.html' },
@@ -265,7 +265,7 @@
     add(supports ? 'ok' : 'bad', 'Браузер поддерживает ES-модули',
       supports ? 'да' : 'НЕТ — браузер слишком старый, система не запустится');
 
-    import('./js/core/store.js?v=6&diag=' + Date.now())
+    import('./js/core/store.js?v=7&diag=' + Date.now())
       .then(function (m) {
         add('ok', 'Загрузка ядра store.js', 'модуль выполнился');
 
@@ -286,7 +286,7 @@
           add('bad', 'Ошибка внутри ядра', e.name + ': ' + e.message);
         }
 
-        return import('./js/modules/connect.js?v=6&diag=' + Date.now());
+        return import('./js/modules/connect.js?v=7&diag=' + Date.now());
       })
       .then(function (m) {
         add(typeof m.connectSequence === 'function' ? 'ok' : 'bad',
@@ -300,6 +300,44 @@
         add('bad', 'Модули не загрузились', e.name + ': ' + e.message);
         done();
       });
+  }
+
+  /* ============ 4.5 Перекрытия интерфейса ============ */
+  function checkOverlays(done) {
+    section('СКРЫТЫЕ ЭЛЕМЕНТЫ');
+
+    // Подключаем основную таблицу стилей во временный узел и проверяем,
+    // что атрибут hidden действительно скрывает. Именно из-за отсутствия
+    // такого правила экран подключения висел поверх формы входа.
+    var link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'css/main.css?v=7&diag=' + Date.now();
+
+    link.onload = function () {
+      var probe = document.createElement('div');
+      probe.className = 'connect';   // у этого класса есть display: grid
+      probe.hidden = true;
+      probe.style.position = 'fixed';
+      document.body.appendChild(probe);
+
+      var display = getComputedStyle(probe).display;
+      probe.remove();
+      link.remove();
+
+      add(display === 'none' ? 'ok' : 'bad',
+        'Атрибут hidden скрывает элементы',
+        display === 'none'
+          ? 'да'
+          : 'НЕТ (display: ' + display + ') — скрытые экраны будут перекрывать страницу');
+      done();
+    };
+
+    link.onerror = function () {
+      add('bad', 'Не удалось загрузить css/main.css для проверки');
+      done();
+    };
+
+    document.head.appendChild(link);
   }
 
   /* ============ 5. Внешние ресурсы ============ */
@@ -387,7 +425,9 @@
     checkStorage();
     checkFiles(function () {
       checkModules(function () {
-        checkFonts(finish);
+        checkOverlays(function () {
+          checkFonts(finish);
+        });
       });
     });
   }

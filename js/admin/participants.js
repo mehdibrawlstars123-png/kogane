@@ -3,15 +3,15 @@
  * выдача и отзыв правил, удаление.
  */
 
-import { $, $$, on } from '../core/dom.js?v=6';
-import { store } from '../core/store.js?v=6';
-import { esc, pts } from '../core/format.js?v=6';
-import { modal, toast } from '../core/ui.js?v=6';
-import { notify } from '../core/notify.js?v=6';
-import { levelOptions, COLONIES, STATUSES, colonyById, levelById } from '../data/labels.js?v=6';
-import { participantIcon } from '../core/sprites.js?v=6';
-import { participantCard } from '../sections/shared.js?v=6';
-import { crt } from '../core/crt.js?v=6';
+import { $, $$, on } from '../core/dom.js?v=7';
+import { store } from '../core/store.js?v=7';
+import { esc, pts } from '../core/format.js?v=7';
+import { modal, toast } from '../core/ui.js?v=7';
+import { notify } from '../core/notify.js?v=7';
+import { levelOptions, COLONIES, STATUSES, colonyById, levelById } from '../data/labels.js?v=7';
+import { participantIcon } from '../core/sprites.js?v=7';
+import { participantCard } from '../sections/shared.js?v=7';
+import { crt } from '../core/crt.js?v=7';
 
 let selected = null;
 let query = '';

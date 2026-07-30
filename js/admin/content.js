@@ -2,12 +2,12 @@
  * Админ: правила магазина, создание уведомлений, рассылка.
  */
 
-import { $, $$, on } from '../core/dom.js?v=6';
-import { store } from '../core/store.js?v=6';
-import { esc, dt } from '../core/format.js?v=6';
-import { modal, toast } from '../core/ui.js?v=6';
-import { notify } from '../core/notify.js?v=6';
-import { NOTICE_TYPES, COLONIES } from '../data/labels.js?v=6';
+import { $, $$, on } from '../core/dom.js?v=7';
+import { store } from '../core/store.js?v=7';
+import { esc, dt } from '../core/format.js?v=7';
+import { modal, toast } from '../core/ui.js?v=7';
+import { notify } from '../core/notify.js?v=7';
+import { NOTICE_TYPES, COLONIES } from '../data/labels.js?v=7';
 
 /* ==================== Правила магазина ==================== */
 

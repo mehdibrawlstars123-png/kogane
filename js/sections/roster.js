@@ -2,12 +2,12 @@
  * Раздел «Таблица участников» — 泳者一覧.
  */
 
-import { $, $$, on } from '../core/dom.js?v=6';
-import { store } from '../core/store.js?v=6';
-import { pts } from '../core/format.js?v=6';
-import { COLONIES, JP } from '../data/labels.js?v=6';
-import { rosterRow, rosterCols, sortParticipants, openParticipant, defaultDir } from './shared.js?v=6';
-import { audio } from '../core/audio.js?v=6';
+import { $, $$, on } from '../core/dom.js?v=7';
+import { store } from '../core/store.js?v=7';
+import { pts } from '../core/format.js?v=7';
+import { COLONIES, JP } from '../data/labels.js?v=7';
+import { rosterRow, rosterCols, sortParticipants, openParticipant, defaultDir } from './shared.js?v=7';
+import { audio } from '../core/audio.js?v=7';
 
 let sort = { key: 'points', dir: -1 };
 let filter = 'all';

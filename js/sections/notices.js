@@ -2,11 +2,11 @@
  * Раздел «История уведомлений».
  */
 
-import { $$, on } from '../core/dom.js?v=6';
-import { store } from '../core/store.js?v=6';
-import { esc, dt, ago, pts } from '../core/format.js?v=6';
-import { NOTICE_TYPES, JP } from '../data/labels.js?v=6';
-import { sprite } from '../core/sprites.js?v=6';
+import { $$, on } from '../core/dom.js?v=7';
+import { store } from '../core/store.js?v=7';
+import { esc, dt, ago, pts } from '../core/format.js?v=7';
+import { NOTICE_TYPES, JP } from '../data/labels.js?v=7';
+import { sprite } from '../core/sprites.js?v=7';
 
 let kind = 'all';
 

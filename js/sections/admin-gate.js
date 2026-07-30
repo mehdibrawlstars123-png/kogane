@@ -3,13 +3,13 @@
  * Игроку — отказ доступа, распорядителю — переход в панель.
  */
 
-import { $, on } from '../core/dom.js?v=6';
-import { store } from '../core/store.js?v=6';
-import { crt } from '../core/crt.js?v=6';
-import { audio } from '../core/audio.js?v=6';
-import { esc, dt } from '../core/format.js?v=6';
-import { JP } from '../data/labels.js?v=6';
-import { sprite } from '../core/sprites.js?v=6';
+import { $, on } from '../core/dom.js?v=7';
+import { store } from '../core/store.js?v=7';
+import { crt } from '../core/crt.js?v=7';
+import { audio } from '../core/audio.js?v=7';
+import { esc, dt } from '../core/format.js?v=7';
+import { JP } from '../data/labels.js?v=7';
+import { sprite } from '../core/sprites.js?v=7';
 
 export const adminGate = {
   id: 'admin',
