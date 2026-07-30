@@ -12,6 +12,7 @@ import { typeLines, type, wait } from '../core/typewriter.js?v=6';
 import { wireSounds } from '../core/ui.js?v=6';
 import { connectSequence } from '../modules/connect.js?v=6';
 import { storage } from '../utils/storage.js?v=6';
+import { trace } from '../core/trace.js?v=6';
 
 store.init();
 crt.init();
@@ -208,6 +209,7 @@ on($('#loginForm'), 'submit', async (e) => {
 
   const btn = form.querySelector('[type="submit"]');
   btn.classList.add('is-busy');
+  trace('нажат «Подключиться»', email);
 
   try {
     const user = auth.login({ email, password });
@@ -220,6 +222,7 @@ on($('#loginForm'), 'submit', async (e) => {
     // Экран подключения не должен остаться поверх формы при отказе
     $('#connect').hidden = true;
     audio.err();
+    trace('форма: ОТКАЗ', err.message);
     setMsg(err.message, 'error');
     fieldError(form, 'password', 'Отказ системы');
     crt.glitch($('.screen'), 380);
@@ -250,6 +253,8 @@ on($('#registerForm'), 'submit', async (e) => {
   const btn = form.querySelector('[type="submit"]');
   btn.classList.add('is-busy');
 
+  trace('нажат «Далее → анкета»', email);
+
   try {
     const user = auth.register({ email, password, passwordConfirm });
     $$('.regstep').forEach((s) => s.classList.add('is-done'));
@@ -262,6 +267,7 @@ on($('#registerForm'), 'submit', async (e) => {
     // Экран подключения не должен остаться поверх формы при отказе
     $('#connect').hidden = true;
     audio.err();
+    trace('форма: ОТКАЗ', err.message);
     setMsg(err.message, 'error');
     crt.glitch($('.screen'), 380);
   }
@@ -286,6 +292,8 @@ on($('#adminForm'), 'submit', async (e) => {
   const btn = form.querySelector('[type="submit"]');
   btn.classList.add('is-busy');
 
+  trace('нажат «Открыть панель»', email);
+
   try {
     const user = auth.loginAdmin({ email, password, code });
     setMsg('Код принят. Полномочия распорядителя подтверждены.', 'ok');
@@ -297,6 +305,7 @@ on($('#adminForm'), 'submit', async (e) => {
     // Экран подключения не должен остаться поверх формы при отказе
     $('#connect').hidden = true;
     audio.err();
+    trace('форма: ОТКАЗ', err.message);
     setMsg(err.message, 'error');
     if (/код/i.test(err.message)) fieldError(form, 'code', 'Код отклонён');
     else fieldError(form, 'password', 'Отказ системы');

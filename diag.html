@@ -74,6 +74,7 @@
   <div class="sect">ОТЧЁТ ДЛЯ ОТПРАВКИ</div>
   <button id="copy" type="button">Скопировать отчёт</button>
   <button id="again" type="button">Проверить заново</button>
+  <button id="clear" type="button">Очистить журнал</button>
   <button id="home" type="button">На сайт →</button>
   <textarea id="report" readonly></textarea>
 
@@ -91,7 +92,9 @@
     errors.push('ОТКАЗ ПРОМИСА: ' + ((e.reason && e.reason.message) || e.reason));
   });
 
-  function add(state, title, detail) {
+  // countAsProblem = false для записей журнала: неудачная попытка входа —
+  // это поведение пользователя, а не поломка окружения.
+  function add(state, title, detail, countAsProblem) {
     var mark = state === 'ok' ? '✓' : (state === 'bad' ? '✕' : '!');
     var el = document.createElement('div');
     el.className = 'row';
@@ -101,7 +104,7 @@
       + '</span>';
     out.appendChild(el);
     lines.push(mark + ' ' + title + (detail ? ' — ' + detail : ''));
-    if (state === 'bad') problems.push(title);
+    if (state === 'bad' && countAsProblem !== false) problems.push(title);
   }
 
   function section(name) {
@@ -324,8 +327,31 @@
       });
   }
 
+  /* ============ Журнал действий системы ============ */
+  function checkTrace() {
+    section('ЖУРНАЛ ДЕЙСТВИЙ (что делала система)');
+    var list = [];
+    try { list = JSON.parse(localStorage.getItem('kogane:trace') || '[]'); } catch (e) {}
+
+    if (!list.length) {
+      add('warn', 'Журнал пуст',
+        'Нажмите «Очистить журнал», затем повторите то, что не работает, '
+        + 'и вернитесь сюда — здесь появится пошаговая запись');
+      return;
+    }
+
+    var t0 = list[0].t;
+    list.forEach(function (r) {
+      var ms = r.t - t0;
+      var bad = /ОШИБКА|СБОЙ|ОТКАЗ/.test(r.event);
+      add(bad ? 'bad' : 'ok', '+' + ms + ' мс · [' + r.page + '] ' + r.event,
+        r.detail || '', false);
+    });
+  }
+
   /* ============ Итог ============ */
   function finish() {
+    checkTrace();
     section('ПЕРЕХВАЧЕННЫЕ ОШИБКИ');
     if (errors.length) {
       errors.forEach(function (e) { add('bad', e); });
@@ -367,6 +393,13 @@
   }
 
   document.getElementById('again').onclick = run;
+
+  document.getElementById('clear').onclick = function () {
+    try { localStorage.removeItem('kogane:trace'); } catch (e) {}
+    this.textContent = 'Журнал очищен ✓ теперь повторите поломку';
+    run();
+  };
+
   document.getElementById('home').onclick = function () { location.href = 'index.html'; };
   document.getElementById('copy').onclick = function () {
     var t = document.getElementById('report');

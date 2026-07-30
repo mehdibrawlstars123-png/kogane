@@ -5,6 +5,7 @@
 import { store } from './store.js?v=6';
 import { storage } from '../utils/storage.js?v=6';
 import { bus, EV } from './bus.js?v=6';
+import { trace } from './trace.js?v=6';
 
 const SESSION = 'session';
 
@@ -38,6 +39,7 @@ export const auth = {
     const user = store.createUser({ email: mail, password });
     store.log(mail, 'register', 'Новая регистрация в системе.');
     storage.set(SESSION, user.id);
+    trace('регистрация: успех', `${mail} · id ${user.id}`);
     bus.emit(EV.authChange, user);
     return user;
   },
@@ -56,6 +58,7 @@ export const auth = {
 
     storage.set(SESSION, user.id);
     store.log(user.email, 'login', 'Вход в систему.');
+    trace('вход: успех', `${user.email} · состояние ${user.state}`);
     bus.emit(EV.authChange, user);
     return user;
   },
@@ -79,6 +82,7 @@ export const auth = {
 
     storage.set(SESSION, user.id);
     store.log(user.email, 'login-admin', 'Вход распорядителя игры подтверждён кодом.');
+    trace('вход администрации: успех', user.email);
     bus.emit(EV.authChange, user);
     return user;
   },
@@ -99,19 +103,24 @@ export const auth = {
     const base = window.location.pathname.includes('/pages/') ? '' : 'pages/';
     const root = window.location.pathname.includes('/pages/') ? '../' : '';
 
-    const go = (url) => { window.location.replace(url); return null; };
+    const go = (url, why) => {
+      trace('доступ: перенаправление', `${why} → ${url}`);
+      window.location.replace(url);
+      return null;
+    };
 
-    if (!user) return go(to || `${root}index.html`);
+    if (!user) return go(to || `${root}index.html`, 'нет сессии');
 
     if (need === 'admin' && user.role !== 'admin') {
-      return go(`${base}system.html`);
+      return go(`${base}system.html`, 'нужен админ, а роль игрока');
     }
 
     if (need === 'approved' && user.state !== 'approved' && user.role !== 'admin') {
-      if (user.state === 'registered') return go(`${base}application.html`);
-      return go(`${base}pending.html`);
+      if (user.state === 'registered') return go(`${base}application.html`, 'анкета не заполнена');
+      return go(`${base}pending.html`, `состояние «${user.state}»`);
     }
 
+    trace('доступ: разрешён', `${user.email} · состояние ${user.state}`);
     return user;
   },
 
@@ -120,10 +129,14 @@ export const auth = {
     const inPages = window.location.pathname.includes('/pages/');
     const p = inPages ? '' : 'pages/';
 
-    if (!user) return inPages ? '../index.html' : 'index.html';
-    if (user.role === 'admin') return `${p}admin.html`;
-    if (user.state === 'registered') return `${p}application.html`;
-    if (user.state === 'approved') return `${p}system.html`;
-    return `${p}pending.html`;
+    let target;
+    if (!user) target = inPages ? '../index.html' : 'index.html';
+    else if (user.role === 'admin') target = `${p}admin.html`;
+    else if (user.state === 'registered') target = `${p}application.html`;
+    else if (user.state === 'approved') target = `${p}system.html`;
+    else target = `${p}pending.html`;
+
+    trace('маршрут вычислен', `${user ? user.state : 'без пользователя'} → ${target}`);
+    return target;
   },
 };

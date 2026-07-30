@@ -11,6 +11,7 @@ import { audio } from '../core/audio.js?v=6';
 import { type, wait } from '../core/typewriter.js?v=6';
 import { auth } from '../core/auth.js?v=6';
 import { notify } from '../core/notify.js?v=6';
+import { trace } from '../core/trace.js?v=6';
 
 const STEPS = [
   { jp: '接続中',   ru: 'Подключение к глобальному барьеру...', sub: 'TENGEN BARRIER NETWORK / HANDSHAKE', at: 22 },
@@ -41,22 +42,25 @@ export async function connectSequence({ user, mode = 'login' } = {}) {
   // Без разметки экрана просто уходим в систему
   if (!el) { window.location.href = target; return; }
 
+  trace('подключение: запуск', `режим ${mode} → ${target}`);
+
   let done = false;
-  const go = () => {
+  const go = (why) => {
     if (done) return;
     done = true;
+    trace('подключение: переход', `${why || 'по завершении'} → ${target}`);
     window.location.replace(target);
   };
 
   // Выходы навешиваются ДО всего остального: что бы дальше ни случилось
   // с анимацией или звуком, кнопка и клавиши уже работают.
   window.__koganeConnect = true;
-  on($('#connectSkip'), 'click', go);
-  on(el, 'click', go);
-  on(window, 'keydown', go, { once: true });
+  on($('#connectSkip'), 'click', () => go('нажата кнопка «Продолжить»'));
+  on(el, 'click', () => go('клик по экрану'));
+  on(window, 'keydown', () => go('нажата клавиша'), { once: true });
 
   // Страховка: анимация не держит пользователя дольше семи секунд
-  const failsafe = setTimeout(go, FAILSAFE_MS);
+  const failsafe = setTimeout(() => go('сработала страховка по времени'), FAILSAFE_MS);
 
   el.hidden = false;
 
@@ -79,6 +83,7 @@ export async function connectSequence({ user, mode = 'login' } = {}) {
       sub.textContent = s.sub;
       fill.style.width = `${s.at}%`;
       audio.scan();
+      trace('подключение: шаг', `${s.jp} — ${s.at}%`);
 
       await type(step, s.ru, { speed: 14, jitter: 6, chunk: 2, caret: true, sound: true });
       await wait(s.at === 100 ? 500 : 240);
@@ -90,6 +95,7 @@ export async function connectSequence({ user, mode = 'login' } = {}) {
   } catch (err) {
     // Сбой анимации не должен запирать пользователя на этом экране
     console.error('[connect]', err);
+    trace('подключение: СБОЙ', `${err.name}: ${err.message}`);
   } finally {
     clearTimeout(failsafe);
     go();
