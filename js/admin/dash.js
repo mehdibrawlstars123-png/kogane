@@ -2,12 +2,12 @@
  * Админ: сводка состояния системы.
  */
 
-import { $, on } from '../core/dom.js';
-import { store } from '../core/store.js';
-import { esc, dt, pts, ago } from '../core/format.js';
-import { colonyById, NOTICE_TYPES } from '../data/labels.js';
-import { kogane, sprite } from '../core/sprites.js';
-import { type } from '../core/typewriter.js';
+import { $, on } from '../core/dom.js?v=6';
+import { store } from '../core/store.js?v=6';
+import { esc, dt, pts, ago } from '../core/format.js?v=6';
+import { colonyById, NOTICE_TYPES } from '../data/labels.js?v=6';
+import { kogane, sprite } from '../core/sprites.js?v=6';
+import { type } from '../core/typewriter.js?v=6';
 
 export const dash = {
   id: 'dash',

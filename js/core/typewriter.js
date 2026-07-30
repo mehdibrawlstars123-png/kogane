@@ -2,7 +2,7 @@
  * Typewriter — посимвольный вывод текста с «печатью» терминала.
  */
 
-import { audio } from './audio.js';
+import { audio } from './audio.js?v=6';
 
 const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 

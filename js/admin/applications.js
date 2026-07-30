@@ -2,15 +2,15 @@
  * Админ: очередь анкет — одобрение и отклонение.
  */
 
-import { $, $$, on } from '../core/dom.js';
-import { store } from '../core/store.js';
-import { esc, dt, ago } from '../core/format.js';
-import { modal, toast } from '../core/ui.js';
-import { notify } from '../core/notify.js';
-import { participantIcon } from '../core/sprites.js';
-import { applicationBlock } from '../sections/shared.js';
-import { colonyById, levelById, levelOptions, COLONIES } from '../data/labels.js';
-import { crt } from '../core/crt.js';
+import { $, $$, on } from '../core/dom.js?v=6';
+import { store } from '../core/store.js?v=6';
+import { esc, dt, ago } from '../core/format.js?v=6';
+import { modal, toast } from '../core/ui.js?v=6';
+import { notify } from '../core/notify.js?v=6';
+import { participantIcon } from '../core/sprites.js?v=6';
+import { applicationBlock } from '../sections/shared.js?v=6';
+import { colonyById, levelById, levelOptions, COLONIES } from '../data/labels.js?v=6';
+import { crt } from '../core/crt.js?v=6';
 
 let tab = 'applied';
 

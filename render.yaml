@@ -16,17 +16,13 @@ services:
     pullRequestPreviewsEnabled: false
 
     headers:
-      # Разметку не кешируем: правки видны сразу после деплоя
-      - path: /*.html
+      # Ничего не держим в кеше без проверки: браузер обязан спросить сервер,
+      # изменился ли файл. Иначе старый модуль из кеша встречается с новой
+      # разметкой — и интерфейс ведёт себя необъяснимо.
+      # Файлы маленькие, ответ 304 почти ничего не стоит.
+      - path: /*
         name: Cache-Control
         value: no-cache
-      # Стили и скрипты помечены версией ?v=N, их можно держать в кеше
-      - path: /css/*
-        name: Cache-Control
-        value: public, max-age=3600
-      - path: /js/*
-        name: Cache-Control
-        value: public, max-age=3600
       - path: /*
         name: X-Content-Type-Options
         value: nosniff

@@ -3,26 +3,26 @@
  * Роутинг по hash, синхронизация с базой, реакция на действия админа.
  */
 
-import { $, $$, on } from '../core/dom.js';
-import { store } from '../core/store.js';
-import { auth } from '../core/auth.js';
-import { crt } from '../core/crt.js';
-import { audio } from '../core/audio.js';
-import { bus, EV } from '../core/bus.js';
-import { wireSounds, headTools, toast } from '../core/ui.js';
-import { pts, esc } from '../core/format.js';
-import { colonyById } from '../data/labels.js';
-import { checkDeath, hideDeathScreen } from '../modules/death.js';
-import { shownToasts } from '../core/notify.js';
+import { $, $$, on } from '../core/dom.js?v=6';
+import { store } from '../core/store.js?v=6';
+import { auth } from '../core/auth.js?v=6';
+import { crt } from '../core/crt.js?v=6';
+import { audio } from '../core/audio.js?v=6';
+import { bus, EV } from '../core/bus.js?v=6';
+import { wireSounds, headTools, toast } from '../core/ui.js?v=6';
+import { pts, esc } from '../core/format.js?v=6';
+import { colonyById } from '../data/labels.js?v=6';
+import { checkDeath, hideDeathScreen } from '../modules/death.js?v=6';
+import { shownToasts } from '../core/notify.js?v=6';
 
-import { home } from '../sections/home.js';
-import { profile } from '../sections/profile.js';
-import { roster } from '../sections/roster.js';
-import { search } from '../sections/search.js';
-import { shop } from '../sections/shop.js';
-import { rules } from '../sections/rules.js';
-import { notices } from '../sections/notices.js';
-import { adminGate } from '../sections/admin-gate.js';
+import { home } from '../sections/home.js?v=6';
+import { profile } from '../sections/profile.js?v=6';
+import { roster } from '../sections/roster.js?v=6';
+import { search } from '../sections/search.js?v=6';
+import { shop } from '../sections/shop.js?v=6';
+import { rules } from '../sections/rules.js?v=6';
+import { notices } from '../sections/notices.js?v=6';
+import { adminGate } from '../sections/admin-gate.js?v=6';
 
 store.init();
 crt.init();

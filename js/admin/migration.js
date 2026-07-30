@@ -2,14 +2,14 @@
  * Админ: управление миграцией, журнал, база системы.
  */
 
-import { $, $$, on } from '../core/dom.js';
-import { store } from '../core/store.js';
-import { esc, dt, dtFull, pts, ago } from '../core/format.js';
-import { modal, toast } from '../core/ui.js';
-import { notify } from '../core/notify.js';
-import { crt } from '../core/crt.js';
-import { audio } from '../core/audio.js';
-import { COLONIES } from '../data/labels.js';
+import { $, $$, on } from '../core/dom.js?v=6';
+import { store } from '../core/store.js?v=6';
+import { esc, dt, dtFull, pts, ago } from '../core/format.js?v=6';
+import { modal, toast } from '../core/ui.js?v=6';
+import { notify } from '../core/notify.js?v=6';
+import { crt } from '../core/crt.js?v=6';
+import { audio } from '../core/audio.js?v=6';
+import { COLONIES } from '../data/labels.js?v=6';
 
 /* ==================== Миграция ==================== */
 

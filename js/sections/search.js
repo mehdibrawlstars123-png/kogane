@@ -2,14 +2,14 @@
  * Раздел «Поиск участников» с анимацией сканирования 「検索中」.
  */
 
-import { $, $$, on } from '../core/dom.js';
-import { store } from '../core/store.js';
-import { matches, pts } from '../core/format.js';
-import { JP } from '../data/labels.js';
-import { sprite } from '../core/sprites.js';
-import { audio } from '../core/audio.js';
-import { typeLines, wait } from '../core/typewriter.js';
-import { rosterRow, openParticipant } from './shared.js';
+import { $, $$, on } from '../core/dom.js?v=6';
+import { store } from '../core/store.js?v=6';
+import { matches, pts } from '../core/format.js?v=6';
+import { JP } from '../data/labels.js?v=6';
+import { sprite } from '../core/sprites.js?v=6';
+import { audio } from '../core/audio.js?v=6';
+import { typeLines, wait } from '../core/typewriter.js?v=6';
+import { rosterRow, openParticipant } from './shared.js?v=6';
 
 const LOG_LINES = (q, total) => [
   { text: `> ЗАПРОС: "${q}"`, pause: 90 },

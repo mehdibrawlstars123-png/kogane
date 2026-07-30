@@ -2,16 +2,16 @@
  * Страница входа: загрузка системы → вход/регистрация → подключение к барьеру.
  */
 
-import { $, $$, on } from '../core/dom.js';
-import { store, DEFAULT_ADMIN_CODE } from '../core/store.js';
-import { auth } from '../core/auth.js';
-import { crt } from '../core/crt.js';
-import { audio } from '../core/audio.js';
-import { kogane } from '../core/sprites.js';
-import { typeLines, type, wait } from '../core/typewriter.js';
-import { wireSounds } from '../core/ui.js';
-import { connectSequence } from '../modules/connect.js';
-import { storage } from '../utils/storage.js';
+import { $, $$, on } from '../core/dom.js?v=6';
+import { store, DEFAULT_ADMIN_CODE } from '../core/store.js?v=6';
+import { auth } from '../core/auth.js?v=6';
+import { crt } from '../core/crt.js?v=6';
+import { audio } from '../core/audio.js?v=6';
+import { kogane } from '../core/sprites.js?v=6';
+import { typeLines, type, wait } from '../core/typewriter.js?v=6';
+import { wireSounds } from '../core/ui.js?v=6';
+import { connectSequence } from '../modules/connect.js?v=6';
+import { storage } from '../utils/storage.js?v=6';
 
 store.init();
 crt.init();

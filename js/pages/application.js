@@ -3,18 +3,18 @@
  * валидация и отправка на рассмотрение распорядителю.
  */
 
-import { $, $$, on, create } from '../core/dom.js';
-import { store } from '../core/store.js';
-import { auth } from '../core/auth.js';
-import { crt } from '../core/crt.js';
-import { audio } from '../core/audio.js';
-import { toast, wireSounds, headTools } from '../core/ui.js';
-import { esc } from '../core/format.js';
-import { APPLICATION_SCHEMA } from '../data/seed.js';
-import { levelOptions, COLONIES } from '../data/labels.js';
-import { storage } from '../utils/storage.js';
-import { wait } from '../core/typewriter.js';
-import { debounce } from '../utils/helpers.js';
+import { $, $$, on, create } from '../core/dom.js?v=6';
+import { store } from '../core/store.js?v=6';
+import { auth } from '../core/auth.js?v=6';
+import { crt } from '../core/crt.js?v=6';
+import { audio } from '../core/audio.js?v=6';
+import { toast, wireSounds, headTools } from '../core/ui.js?v=6';
+import { esc } from '../core/format.js?v=6';
+import { APPLICATION_SCHEMA } from '../data/seed.js?v=6';
+import { levelOptions, COLONIES } from '../data/labels.js?v=6';
+import { storage } from '../utils/storage.js?v=6';
+import { wait } from '../core/typewriter.js?v=6';
+import { debounce } from '../utils/helpers.js?v=6';
 
 store.init();
 crt.init();

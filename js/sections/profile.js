@@ -3,13 +3,13 @@
  * Имя, уровень, очки, количество правил, колония, статус — как на кадрах.
  */
 
-import { $ } from '../core/dom.js';
-import { store } from '../core/store.js';
-import { esc, pts, dt, daysLeft, plural } from '../core/format.js';
-import { colonyById, levelById, STATUSES, JP } from '../data/labels.js';
-import { participantIcon, sprite } from '../core/sprites.js';
-import { countTo, scramble } from '../core/typewriter.js';
-import { applicationBlock } from './shared.js';
+import { $ } from '../core/dom.js?v=6';
+import { store } from '../core/store.js?v=6';
+import { esc, pts, dt, daysLeft, plural } from '../core/format.js?v=6';
+import { colonyById, levelById, STATUSES, JP } from '../data/labels.js?v=6';
+import { participantIcon, sprite } from '../core/sprites.js?v=6';
+import { countTo, scramble } from '../core/typewriter.js?v=6';
+import { applicationBlock } from './shared.js?v=6';
 
 export const profile = {
   id: 'profile',

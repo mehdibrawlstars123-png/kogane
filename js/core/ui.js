@@ -2,12 +2,12 @@
  * UI — тосты, модальные окна, подтверждения, общие фрагменты разметки.
  */
 
-import { $, create, lockScroll, unlockScroll } from './dom.js';
-import { sprite } from './sprites.js';
-import { audio } from './audio.js';
-import { NOTICE_TYPES } from '../data/labels.js';
-import { type } from './typewriter.js';
-import { esc } from './format.js';
+import { $, create, lockScroll, unlockScroll } from './dom.js?v=6';
+import { sprite } from './sprites.js?v=6';
+import { audio } from './audio.js?v=6';
+import { NOTICE_TYPES } from '../data/labels.js?v=6';
+import { type } from './typewriter.js?v=6';
+import { esc } from './format.js?v=6';
 
 /* =================== Тосты уведомлений =================== */
 

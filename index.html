@@ -56,19 +56,19 @@
 
     if (skip && connect) {
       skip.addEventListener('click', function () {
-        // Если модуль жив, он сам знает точный адрес перехода
-        if (window.__koganeConnect) return;
-        leave();
+        // Не проверяем состояние модуля: если он жив, то уведёт страницу
+        // первым. Если нет — через полсекунды уходим сами.
+        setTimeout(leave, 500);
       });
     }
 
-    // Экран подключения не должен держать дольше десяти секунд
+    // Экран подключения не должен держать дольше восьми секунд
     if (connect) {
       new MutationObserver(function () {
         if (connect.hidden) return;
         setTimeout(function () {
           if (!connect.hidden && document.body.contains(connect)) leave();
-        }, 10000);
+        }, 8000);
       }).observe(connect, { attributes: true, attributeFilter: ['hidden'] });
     }
 

@@ -3,7 +3,7 @@
  * Никаких внешних файлов. По умолчанию выключено до жеста пользователя.
  */
 
-import { storage } from '../utils/storage.js';
+import { storage } from '../utils/storage.js?v=6';
 
 let ctx = null;
 let enabled = storage.get('sound', false);

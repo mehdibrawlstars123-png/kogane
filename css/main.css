@@ -4,39 +4,39 @@
    ========================================================= */
 
 /* Base */
-@import url("base/variables.css");
-@import url("base/reset.css");
-@import url("base/typography.css");
-@import url("base/animations.css");
+@import url("base/variables.css?v=6");
+@import url("base/reset.css?v=6");
+@import url("base/typography.css?v=6");
+@import url("base/animations.css?v=6");
 
 /* Effects */
-@import url("effects/crt.css");
-@import url("effects/glitch.css");
+@import url("effects/crt.css?v=6");
+@import url("effects/glitch.css?v=6");
 
 /* Layout */
-@import url("layout/screen.css");
-@import url("layout/panel.css");
-@import url("layout/grid.css");
+@import url("layout/screen.css?v=6");
+@import url("layout/panel.css?v=6");
+@import url("layout/grid.css?v=6");
 
 /* Components */
-@import url("components/button.css");
-@import url("components/field.css");
-@import url("components/nav.css");
-@import url("components/table.css");
-@import url("components/card.css");
-@import url("components/rule.css");
-@import url("components/notice.css");
-@import url("components/modal.css");
-@import url("components/search.css");
-@import url("components/boot.css");
-@import url("components/sprite.css");
+@import url("components/button.css?v=6");
+@import url("components/field.css?v=6");
+@import url("components/nav.css?v=6");
+@import url("components/table.css?v=6");
+@import url("components/card.css?v=6");
+@import url("components/rule.css?v=6");
+@import url("components/notice.css?v=6");
+@import url("components/modal.css?v=6");
+@import url("components/search.css?v=6");
+@import url("components/boot.css?v=6");
+@import url("components/sprite.css?v=6");
 
 /* Pages */
-@import url("pages/auth.css");
-@import url("pages/application.css");
-@import url("pages/system.css");
-@import url("pages/admin.css");
-@import url("pages/death.css");
+@import url("pages/auth.css?v=6");
+@import url("pages/application.css?v=6");
+@import url("pages/system.css?v=6");
+@import url("pages/admin.css?v=6");
+@import url("pages/death.css?v=6");
 
 /* Utils */
-@import url("utils/helpers.css");
+@import url("utils/helpers.css?v=6");
