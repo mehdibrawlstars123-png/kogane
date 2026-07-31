@@ -1,0 +1,88 @@
+/* =========================================================
+   Volume — регулятор громкости системы
+   ========================================================= */
+
+.volume {
+  --vol: 55%;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: 3px 8px;
+  border: 2px solid var(--ink-faint);
+  transition: border-color var(--dur-2) var(--ease);
+}
+
+.volume:hover,
+.volume:focus-within { border-color: var(--ink); }
+
+.volume.is-muted { opacity: 0.55; }
+
+.volume__icon {
+  width: 18px;
+  font-family: var(--font-jp);
+  font-size: 13px;
+  line-height: 1;
+  color: var(--ink);
+  text-align: center;
+}
+
+.volume__value {
+  min-width: 22px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-align: right;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Ползунок в стиле пиксельного терминала */
+.volume__slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 86px;
+  height: 12px;
+  background: none;
+  cursor: pointer;
+}
+
+.volume__slider::-webkit-slider-runnable-track {
+  height: 8px;
+  border: 1px solid var(--ink-faint);
+  background:
+    linear-gradient(var(--ink), var(--ink)) 0 0 / var(--vol) 100% no-repeat,
+    repeating-linear-gradient(90deg, var(--ink-faint) 0 2px, transparent 2px 5px);
+}
+
+.volume__slider::-moz-range-track {
+  height: 8px;
+  border: 1px solid var(--ink-faint);
+  background:
+    linear-gradient(var(--ink), var(--ink)) 0 0 / var(--vol) 100% no-repeat,
+    repeating-linear-gradient(90deg, var(--ink-faint) 0 2px, transparent 2px 5px);
+}
+
+.volume__slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 8px;
+  height: 14px;
+  margin-top: -4px;
+  background: var(--ink);
+  border: 0;
+  box-shadow: 0 0 6px var(--glow-soft);
+}
+
+.volume__slider::-moz-range-thumb {
+  width: 8px;
+  height: 14px;
+  border: 0;
+  border-radius: 0;
+  background: var(--ink);
+}
+
+.volume__slider:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+
+@media (max-width: 700px) {
+  .volume__slider { width: 56px; }
+  .volume__value { display: none; }
+}

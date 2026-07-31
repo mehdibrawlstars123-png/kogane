@@ -2,12 +2,12 @@
  * UI — тосты, модальные окна, подтверждения, общие фрагменты разметки.
  */
 
-import { $, create, lockScroll, unlockScroll } from './dom.js?v=7';
-import { sprite } from './sprites.js?v=7';
-import { audio } from './audio.js?v=7';
-import { NOTICE_TYPES } from '../data/labels.js?v=7';
-import { type } from './typewriter.js?v=7';
-import { esc } from './format.js?v=7';
+import { $, create, lockScroll, unlockScroll } from './dom.js?v=9';
+import { sprite } from './sprites.js?v=9';
+import { audio } from './audio.js?v=9';
+import { NOTICE_TYPES } from '../data/labels.js?v=9';
+import { type } from './typewriter.js?v=9';
+import { esc } from './format.js?v=9';
 
 /* =================== Тосты уведомлений =================== */
 
@@ -179,6 +179,63 @@ export function wireSounds(root = document) {
   root.addEventListener('click', (e) => {
     if (e.target.closest?.('.btn, .navitem, .chip, .atab, .auth__tab')) audio.click();
   }, true);
+
+  // Браузер не даёт звучать до первого действия пользователя.
+  // Ловим самое первое — и включаем гул монитора.
+  const unlock = () => audio.unlock();
+  ['pointerdown', 'keydown', 'touchstart'].forEach((ev) => {
+    window.addEventListener(ev, unlock, { once: true, capture: true });
+  });
+}
+
+/* =================== Регулятор громкости =================== */
+
+export function volumeControl() {
+  const wrap = create('div', { class: 'volume', title: 'Громкость системы' });
+
+  const icon = create('button', {
+    class: 'volume__icon',
+    type: 'button',
+    'aria-label': 'Выключить или включить звук',
+  });
+
+  const slider = create('input', {
+    class: 'volume__slider',
+    type: 'range',
+    min: '0',
+    max: '100',
+    step: '5',
+    'aria-label': 'Громкость',
+  });
+
+  const value = create('span', { class: 'volume__value' });
+
+  const paint = () => {
+    const v = Math.round(audio.volume * 100);
+    slider.value = String(v);
+    value.textContent = `${v}`;
+    wrap.classList.toggle('is-muted', v === 0);
+    icon.textContent = v === 0 ? '×' : (v < 40 ? '▂' : (v < 75 ? '▄' : '█'));
+    wrap.style.setProperty('--vol', `${v}%`);
+  };
+
+  slider.addEventListener('input', () => {
+    audio.setVolume(Number(slider.value) / 100);
+    paint();
+  });
+
+  // Пробный звук после отпускания — слышно, что выбрал
+  slider.addEventListener('change', () => { audio.unlock(); audio.blip(); });
+
+  icon.addEventListener('click', () => {
+    audio.unlock();
+    audio.toggle();
+    paint();
+  });
+
+  wrap.append(icon, slider, value);
+  paint();
+  return wrap;
 }
 
 /* =================== Переключатели в шапке =================== */
@@ -186,16 +243,10 @@ export function wireSounds(root = document) {
 export function headTools({ onLogout } = {}) {
   const wrap = create('div', { class: 'row' });
 
-  const sound = create('button', { class: 'btn btn--sm btn--ghost', type: 'button' });
-  sound.textContent = audio.enabled ? 'Звук: вкл' : 'Звук: выкл';
-  sound.addEventListener('click', () => {
-    sound.textContent = audio.toggle() ? 'Звук: вкл' : 'Звук: выкл';
-  });
-
   const exit = create('button', { class: 'btn btn--sm', type: 'button' });
   exit.textContent = 'Отключиться';
   exit.addEventListener('click', () => onLogout?.());
 
-  wrap.append(sound, exit);
+  wrap.append(volumeControl(), exit);
   return wrap;
 }

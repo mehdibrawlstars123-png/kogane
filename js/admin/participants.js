@@ -3,18 +3,23 @@
  * выдача и отзыв правил, удаление.
  */
 
-import { $, $$, on } from '../core/dom.js?v=7';
-import { store } from '../core/store.js?v=7';
-import { esc, pts } from '../core/format.js?v=7';
-import { modal, toast } from '../core/ui.js?v=7';
-import { notify } from '../core/notify.js?v=7';
-import { levelOptions, COLONIES, STATUSES, colonyById, levelById } from '../data/labels.js?v=7';
-import { participantIcon } from '../core/sprites.js?v=7';
-import { participantCard } from '../sections/shared.js?v=7';
-import { crt } from '../core/crt.js?v=7';
+import { $, $$, on } from '../core/dom.js?v=9';
+import { store } from '../core/store.js?v=9';
+import { esc, pts } from '../core/format.js?v=9';
+import { modal, toast } from '../core/ui.js?v=9';
+import { notify } from '../core/notify.js?v=9';
+import { levelOptions, COLONIES, STATUSES, colonyById, levelById } from '../data/labels.js?v=9';
+import { participantIcon } from '../core/sprites.js?v=9';
+import { participantCard } from '../sections/shared.js?v=9';
+import { crt } from '../core/crt.js?v=9';
 
 let selected = null;
 let query = '';
+
+// Охват массовых действий переживает перерисовку: иначе после первого
+// действия он молча сбрасывался на «все» и следующее задевало лишних.
+let massScope = 'all';
+let massAmount = 5;
 
 export const participants = {
   id: 'participants',
@@ -33,6 +38,32 @@ export const participants = {
         <span class="sec-head__no jp">02</span>
         <span class="sec-head__title">Управление участниками</span>
         <span class="sec-head__jp jp">泳者管理</span>
+      </div>
+
+      <div class="panel panel--framed mb-4">
+        <div class="panel__head">
+          <span class="panel__title">Массовые действия</span>
+          <span class="panel__jp jp">一斉操作</span>
+          <span class="panel__tools fs-xxs muted">применяются сразу ко всем выбранным</span>
+        </div>
+        <div class="panel__body">
+          <div class="quickops" style="margin:0">
+            <select class="field__select" id="massScope" style="width:auto;padding:6px 30px 6px 10px">
+              <option value="all" ${massScope === 'all' ? 'selected' : ''}>Все участники</option>
+              <option value="alive" ${massScope === 'alive' ? 'selected' : ''}>Только те, кто в игре</option>
+              ${COLONIES.map((c) => `<option value="c:${c.id}" ${massScope === `c:${c.id}` ? 'selected' : ''}>Колония: ${c.ru}</option>`).join('')}
+            </select>
+            <span class="field__wrap" style="width:96px">
+              <input class="field__input" id="massPoints" type="number" min="0" value="${massAmount}" />
+            </span>
+            <button class="btn btn--sm btn--primary" type="button" id="massAdd">Начислить всем</button>
+            <button class="btn btn--sm btn--danger" type="button" id="massSub">Списать у всех</button>
+            <span class="push"></span>
+            <button class="btn btn--sm btn--danger" type="button" id="massKill">Объявить выбывшими</button>
+            <button class="btn btn--sm btn--ghost" type="button" id="massRevive">Вернуть в игру</button>
+          </div>
+          <p class="fs-xxs mono muted mt-2" id="massCount"></p>
+        </div>
       </div>
 
       <div class="editor">
@@ -68,10 +99,138 @@ export const participants = {
       this.render(root, ctx);
     }));
 
+    wireMassOps(root, ctx, this);
     paintPane(root, ctx, this);
     return root;
   },
 };
+
+/* ---------------- Массовые действия ---------------- */
+
+function wireMassOps(root, ctx, self) {
+  const scope = $('#massScope', root);
+  const count = $('#massCount', root);
+  const refresh = () => self.render(root, ctx);
+
+  /** Кого затрагивает выбранный охват */
+  const targets = () => {
+    const v = scope.value;
+    let list = store.participants();
+    if (v === 'alive') list = list.filter((p) => p.status !== 'dead');
+    else if (v.startsWith('c:')) list = list.filter((p) => p.colony === v.slice(2));
+    return list;
+  };
+
+  const paintCount = () => {
+    const list = targets();
+    count.textContent = `> Затронет участников: ${list.length}`
+      + (list.length ? ` (${list.slice(0, 3).map((p) => p.name).join(', ')}${list.length > 3 ? '…' : ''})` : '');
+  };
+
+  on(scope, 'change', () => { massScope = scope.value; paintCount(); });
+  on($('#massPoints', root), 'input', (e) => { massAmount = Math.max(0, Number(e.target.value) || 0); });
+  paintCount();
+
+  /** Общая обработка: подтверждение → действие над каждым → журнал */
+  const bulk = async ({ title, jp, text, okText, danger = false, apply, logAction, logText }) => {
+    const list = targets();
+    if (!list.length) { toast.err('Никого не затронуто', 'В выбранном охвате нет участников.'); return; }
+
+    const ok = await modal.confirm({
+      title, jp, danger,
+      text: `${text}
+
+Затронет участников: ${list.length}.`,
+      okText,
+    });
+    if (!ok) return;
+
+    list.forEach(apply);
+    store.log(ctx.admin.email, logAction, `${logText} Затронуто: ${list.length}.`, danger ? 'warn' : 'info');
+    toast.ok('Готово', `Затронуто участников: ${list.length}`);
+    refresh();
+  };
+
+  on($('#massAdd', root), 'click', () => {
+    const amount = Math.max(0, Number($('#massPoints', root).value) || massAmount);
+    if (!amount) { toast.err('Укажите количество очков'); return; }
+    massAmount = amount;
+    bulk({
+      title: 'Начисление очков', jp: '一斉加点',
+      text: `Начислить по ${amount} очков каждому.`,
+      okText: 'Начислить',
+      apply: (p) => {
+        const total = (p.points || 0) + amount;
+        store.updateParticipant(p.id, { points: total });
+        if (!p.isNpc) {
+          notify.emit('points', { amount, total, reason: 'массовое начисление', actor: ctx.admin.email },
+            { target: p.id, silent: true });
+        }
+      },
+      logAction: 'mass-points-add',
+      logText: `Массовое начисление +${amount}.`,
+    });
+  });
+
+  on($('#massSub', root), 'click', () => {
+    const amount = Math.max(0, Number($('#massPoints', root).value) || massAmount);
+    if (!amount) { toast.err('Укажите количество очков'); return; }
+    massAmount = amount;
+    bulk({
+      title: 'Списание очков', jp: '一斉減点', danger: true,
+      text: `Списать по ${amount} очков у каждого. Ниже нуля счёт не опускается.`,
+      okText: 'Списать',
+      apply: (p) => {
+        const total = Math.max(0, (p.points || 0) - amount);
+        store.updateParticipant(p.id, { points: total });
+        if (!p.isNpc) {
+          notify.emit('penalty', { amount, total, reason: 'массовое списание', actor: ctx.admin.email },
+            { target: p.id, silent: true });
+        }
+      },
+      logAction: 'mass-points-sub',
+      logText: `Массовое списание −${amount}.`,
+    });
+  });
+
+  on($('#massKill', root), 'click', () => bulk({
+    title: 'Массовое выбывание', jp: '一斉死亡宣告', danger: true,
+    text: 'Все выбранные участники получат полноэкранное уведомление о выбывании, '
+        + 'а доступ к системе им закроется.',
+    okText: 'Объявить выбывшими',
+    apply: (p) => {
+      store.updateParticipant(p.id, { status: 'dead' });
+      if (!p.isNpc) {
+        store.updateUser(p.id, {
+          deathReason: 'Выбывание подтверждено распорядителем игры.',
+          deadMigration: store.migration().number,
+        });
+        notify.emit('death', { actor: ctx.admin.email }, { target: p.id, silent: true });
+      }
+    },
+    logAction: 'mass-kill',
+    logText: 'Массовое выбывание.',
+  }));
+
+  on($('#massRevive', root), 'click', () => bulk({
+    title: 'Массовый возврат в игру', jp: '一斉復帰',
+    text: 'Выбранные участники вернутся в игру, экран выбывания у них снимется.',
+    okText: 'Вернуть',
+    apply: (p) => {
+      store.updateParticipant(p.id, { status: 'active' });
+      if (!p.isNpc) {
+        store.commit((d) => {
+          const u = d.users.find((x) => x.id === p.id);
+          if (!u) return;
+          delete u.deadMigration;
+          delete u.deathReason;
+        });
+      }
+    },
+    logAction: 'mass-revive',
+    logText: 'Массовый возврат в игру.',
+  }));
+}
 
 /* ---------------- Панель редактирования ---------------- */
 
@@ -108,6 +267,9 @@ function paintPane(root, ctx, self) {
       <button class="btn btn--sm btn--danger" type="button" data-pts="-5">−5</button>
       <button class="btn btn--sm btn--danger" type="button" data-pts="-100">−100</button>
       <button class="btn btn--sm btn--ghost" type="button" id="pSetPts">Задать…</button>
+      ${p.status === 'dead'
+        ? '<button class="btn btn--sm btn--primary" type="button" id="pRevive">Вернуть в игру</button>'
+        : ''}
     </div>
 
     <div class="field-row">
@@ -238,6 +400,37 @@ function paintPane(root, ctx, self) {
     store.log(admin.email, 'edit-participant', `${p.name}: ${changes.join(', ') || 'без изменений'}.`);
     toast.ok('Изменения применены', `${p.name} — ${changes.length} ${changes.length ? 'правок' : 'правок'}`);
     crt.glitch($('.screen'), 220);
+    refresh();
+  });
+
+  /* Возврат выбывшего участника в игру */
+  const revive = $('#pRevive', pane);
+  if (revive) on(revive, 'click', async () => {
+    const ok = await modal.confirm({
+      title: 'Возврат в игру', jp: '復帰',
+      text: `Вернуть участника «${p.name}» в игру? Экран выбывания у него снимется, `
+          + 'доступ к разделам восстановится.',
+      okText: 'Вернуть',
+    });
+    if (!ok) return;
+
+    store.updateParticipant(p.id, { status: 'active' });
+    if (!p.isNpc) {
+      store.commit((d) => {
+        const u = d.users.find((x) => x.id === p.id);
+        if (!u) return;
+        delete u.deadMigration;
+        delete u.deathReason;
+      });
+      notify.emit('broadcast', {
+        overrideTitle: 'Возвращение в игру',
+        text: 'Распорядитель вернул вас в Смертельную миграцию. Доступ к системе восстановлен.',
+        actor: admin.email,
+      }, { target: p.id, silent: true });
+    }
+
+    store.log(admin.email, 'revive', `${p.name} возвращён в игру.`);
+    toast.ok('Участник возвращён', p.name);
     refresh();
   });
 

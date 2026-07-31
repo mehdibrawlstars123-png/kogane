@@ -3,9 +3,9 @@
  * Каждое событие пишется в историю уведомлений, в журнал и показывается тостом.
  */
 
-import { store } from './store.js?v=7';
-import { toast } from './ui.js?v=7';
-import { NOTICE_TYPES, colonyById, levelById } from '../data/labels.js?v=7';
+import { store } from './store.js?v=9';
+import { toast } from './ui.js?v=9';
+import { NOTICE_TYPES, colonyById, levelById } from '../data/labels.js?v=9';
 
 /** Текстовые шаблоны событий Коганэ */
 const TPL = {

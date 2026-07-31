@@ -51,3 +51,7 @@
 
 @media (max-width: 900px) { .hide-sm { display: none !important } }
 @media (min-width: 901px) { .hide-lg { display: none !important } }
+
+/* Второстепенное в шапке: убирается раньше остального,
+   чтобы строка не переносилась на средних экранах */
+@media (max-width: 1200px) { .hide-md { display: none !important } }

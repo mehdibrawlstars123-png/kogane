@@ -3,26 +3,26 @@
  * Роутинг по hash, синхронизация с базой, реакция на действия админа.
  */
 
-import { $, $$, on } from '../core/dom.js?v=7';
-import { store } from '../core/store.js?v=7';
-import { auth } from '../core/auth.js?v=7';
-import { crt } from '../core/crt.js?v=7';
-import { audio } from '../core/audio.js?v=7';
-import { bus, EV } from '../core/bus.js?v=7';
-import { wireSounds, headTools, toast } from '../core/ui.js?v=7';
-import { pts, esc } from '../core/format.js?v=7';
-import { colonyById } from '../data/labels.js?v=7';
-import { checkDeath, hideDeathScreen } from '../modules/death.js?v=7';
-import { shownToasts } from '../core/notify.js?v=7';
+import { $, $$, on } from '../core/dom.js?v=9';
+import { store } from '../core/store.js?v=9';
+import { auth } from '../core/auth.js?v=9';
+import { crt } from '../core/crt.js?v=9';
+import { audio } from '../core/audio.js?v=9';
+import { bus, EV } from '../core/bus.js?v=9';
+import { wireSounds, headTools, toast } from '../core/ui.js?v=9';
+import { pts, esc } from '../core/format.js?v=9';
+import { colonyById } from '../data/labels.js?v=9';
+import { checkDeath, hideDeathScreen } from '../modules/death.js?v=9';
+import { shownToasts } from '../core/notify.js?v=9';
 
-import { home } from '../sections/home.js?v=7';
-import { profile } from '../sections/profile.js?v=7';
-import { roster } from '../sections/roster.js?v=7';
-import { search } from '../sections/search.js?v=7';
-import { shop } from '../sections/shop.js?v=7';
-import { rules } from '../sections/rules.js?v=7';
-import { notices } from '../sections/notices.js?v=7';
-import { adminGate } from '../sections/admin-gate.js?v=7';
+import { home } from '../sections/home.js?v=9';
+import { profile } from '../sections/profile.js?v=9';
+import { roster } from '../sections/roster.js?v=9';
+import { search } from '../sections/search.js?v=9';
+import { shop } from '../sections/shop.js?v=9';
+import { rules } from '../sections/rules.js?v=9';
+import { notices } from '../sections/notices.js?v=9';
+import { adminGate } from '../sections/admin-gate.js?v=9';
 
 store.init();
 crt.init();
@@ -127,6 +127,21 @@ on(window, 'hashchange', () => {
   if (SECTIONS[name] && name !== currentView) renderView(name);
 });
 
+/* Горячие клавиши: 1…8 переключают разделы, если не набирают текст */
+const ORDER = ['home', 'profile', 'roster', 'search', 'shop', 'rules', 'notices', 'admin'];
+
+on(document, 'keydown', (e) => {
+  if (e.ctrlKey || e.altKey || e.metaKey) return;
+  if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+  if (document.querySelector('.modal.is-open')) return;
+
+  const n = Number(e.key);
+  if (n >= 1 && n <= ORDER.length) {
+    audio.click();
+    renderView(ORDER[n - 1]);
+  }
+});
+
 /* ---------------- Инструменты в шапке ---------------- */
 
 $('#headTools').append(headTools({
@@ -183,6 +198,20 @@ function watch() {
     lastState.status = 'dead';
     lastState.migration = mig.active;
     checkDeath(user, { silentIfDead: false });
+    return;
+  }
+
+  // Возврат в игру решением распорядителя: экран выбывания нужно снять,
+  // иначе участник остаётся заперт за ним даже с активным статусом.
+  if (m.status !== 'dead' && lastState.status === 'dead') {
+    lastState.status = m.status;
+    hideDeathScreen();
+    toast.show({
+      type: 'approved',
+      title: 'Возвращение в игру',
+      text: 'Распорядитель вернул вас в Смертельную миграцию. Доступ восстановлен.',
+    });
+    refresh();
     return;
   }
 

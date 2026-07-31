@@ -3,18 +3,18 @@
  * валидация и отправка на рассмотрение распорядителю.
  */
 
-import { $, $$, on, create } from '../core/dom.js?v=7';
-import { store } from '../core/store.js?v=7';
-import { auth } from '../core/auth.js?v=7';
-import { crt } from '../core/crt.js?v=7';
-import { audio } from '../core/audio.js?v=7';
-import { toast, wireSounds, headTools } from '../core/ui.js?v=7';
-import { esc } from '../core/format.js?v=7';
-import { APPLICATION_SCHEMA } from '../data/seed.js?v=7';
-import { levelOptions, COLONIES } from '../data/labels.js?v=7';
-import { storage } from '../utils/storage.js?v=7';
-import { wait } from '../core/typewriter.js?v=7';
-import { debounce } from '../utils/helpers.js?v=7';
+import { $, $$, on, create } from '../core/dom.js?v=9';
+import { store } from '../core/store.js?v=9';
+import { auth } from '../core/auth.js?v=9';
+import { crt } from '../core/crt.js?v=9';
+import { audio } from '../core/audio.js?v=9';
+import { toast, wireSounds, headTools } from '../core/ui.js?v=9';
+import { esc } from '../core/format.js?v=9';
+import { APPLICATION_SCHEMA } from '../data/seed.js?v=9';
+import { levelOptions, COLONIES } from '../data/labels.js?v=9';
+import { storage } from '../utils/storage.js?v=9';
+import { wait } from '../core/typewriter.js?v=9';
+import { debounce } from '../utils/helpers.js?v=9';
 
 store.init();
 crt.init();

@@ -74,12 +74,16 @@
 .screen.is-off { animation: power-off 0.5s var(--ease-crt) forwards; }
 
 /* ---- Шапка системы ---- */
+/* Шапка переносится на вторую строку, а не сжимает содержимое:
+   при нехватке места элементы налезали друг на друга, а иероглифы
+   схлопывались в столбик. */
 .sys-head {
   position: relative;
   z-index: 5;
   display: flex;
   align-items: center;
-  gap: var(--sp-4);
+  flex-wrap: wrap;
+  gap: var(--sp-2) var(--sp-4);
   padding: var(--sp-3) var(--sp-5);
   border-bottom: 2px solid var(--ink-line);
   background: rgba(12, 21, 3, 0.06);
@@ -90,19 +94,30 @@
   align-items: center;
   gap: var(--sp-3);
   min-width: 0;
+  /* не растягиваем: иначе бренд занимает всю строку и выталкивает
+     правую часть шапки на вторую строку даже на широком экране */
+  flex: 0 1 auto;
 }
 
+/* Заголовок укорачивается многоточием, но не вылезает за свой блок */
 .sys-head__title {
+  min-width: 0;
   font-size: var(--fs-sm);
-  letter-spacing: var(--tracking-wide);
+  /* разрядка поменьше обычной «широкой»: на средних экранах
+     заголовок съедал место и шапка ломалась на две строки */
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .sys-head__jp {
+  flex-shrink: 0;
   font-family: var(--font-jp);
   font-size: var(--fs-lg);
   line-height: 1;
+  white-space: nowrap;
   opacity: 0.8;
 }
 
@@ -110,12 +125,16 @@
   margin-left: auto;
   display: flex;
   align-items: center;
-  gap: var(--sp-4);
+  flex-wrap: wrap;
+  flex-shrink: 0;
+  gap: var(--sp-2) var(--sp-4);
   font-size: var(--fs-xxs);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--ink-soft);
 }
+
+.sys-head__meta > span { white-space: nowrap; }
 
 .sys-head__meta b { color: var(--ink); font-weight: 700; }
 

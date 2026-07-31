@@ -180,7 +180,7 @@
     { path: 'js/modules/connect.js',   marker: '__koganeConnect',        why: 'обработчик кнопки «Продолжить»' },
     { path: 'js/pages/auth.js',        marker: 'function regStep',       why: 'пошаговая регистрация' },
     { path: 'js/core/store.js',        marker: 'checkAdminCode',         why: 'секретный код администрации' },
-    { path: 'css/main.css',            marker: 'variables.css?v=7',      why: 'версии стилей' },
+    { path: 'css/main.css',            marker: 'variables.css?v=9',      why: 'версии стилей' },
     { path: 'pages/system.html' },
     { path: 'pages/application.html' },
     { path: 'pages/pending.html' },
@@ -265,7 +265,7 @@
     add(supports ? 'ok' : 'bad', 'Браузер поддерживает ES-модули',
       supports ? 'да' : 'НЕТ — браузер слишком старый, система не запустится');
 
-    import('./js/core/store.js?v=7&diag=' + Date.now())
+    import('./js/core/store.js?v=9&diag=' + Date.now())
       .then(function (m) {
         add('ok', 'Загрузка ядра store.js', 'модуль выполнился');
 
@@ -286,7 +286,7 @@
           add('bad', 'Ошибка внутри ядра', e.name + ': ' + e.message);
         }
 
-        return import('./js/modules/connect.js?v=7&diag=' + Date.now());
+        return import('./js/modules/connect.js?v=9&diag=' + Date.now());
       })
       .then(function (m) {
         add(typeof m.connectSequence === 'function' ? 'ok' : 'bad',
@@ -311,7 +311,7 @@
     // такого правила экран подключения висел поверх формы входа.
     var link = document.createElement('link');
     link.rel = 'stylesheet';
-    link.href = 'css/main.css?v=7&diag=' + Date.now();
+    link.href = 'css/main.css?v=9&diag=' + Date.now();
 
     link.onload = function () {
       var probe = document.createElement('div');

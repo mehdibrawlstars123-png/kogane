@@ -7,8 +7,8 @@
  * действия администратора видны игроку в другой вкладке сразу.
  */
 
-import { bus, EV } from './bus.js?v=7';
-import { BASE_RULES, SHOP_RULES, DEMO_ROSTER, RULE_HISTORY_SEED } from '../data/seed.js?v=7';
+import { bus, EV } from './bus.js?v=9';
+import { BASE_RULES, SHOP_RULES, DEMO_ROSTER, RULE_HISTORY_SEED } from '../data/seed.js?v=9';
 
 const KEY = 'kogane:db:v1';
 

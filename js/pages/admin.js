@@ -2,19 +2,19 @@
  * Панель распорядителя игры — оркестратор разделов админки.
  */
 
-import { $, $$, on } from '../core/dom.js?v=7';
-import { store } from '../core/store.js?v=7';
-import { auth } from '../core/auth.js?v=7';
-import { crt } from '../core/crt.js?v=7';
-import { audio } from '../core/audio.js?v=7';
-import { bus, EV } from '../core/bus.js?v=7';
-import { wireSounds, headTools } from '../core/ui.js?v=7';
+import { $, $$, on } from '../core/dom.js?v=9';
+import { store } from '../core/store.js?v=9';
+import { auth } from '../core/auth.js?v=9';
+import { crt } from '../core/crt.js?v=9';
+import { audio } from '../core/audio.js?v=9';
+import { bus, EV } from '../core/bus.js?v=9';
+import { wireSounds, headTools } from '../core/ui.js?v=9';
 
-import { dash } from '../admin/dash.js?v=7';
-import { applications } from '../admin/applications.js?v=7';
-import { participants } from '../admin/participants.js?v=7';
-import { rulesAdmin, noticesAdmin, broadcastAdmin } from '../admin/content.js?v=7';
-import { migrationAdmin, logsAdmin, baseAdmin } from '../admin/migration.js?v=7';
+import { dash } from '../admin/dash.js?v=9';
+import { applications } from '../admin/applications.js?v=9';
+import { participants } from '../admin/participants.js?v=9';
+import { rulesAdmin, noticesAdmin, broadcastAdmin } from '../admin/content.js?v=9';
+import { migrationAdmin, logsAdmin, baseAdmin } from '../admin/migration.js?v=9';
 
 store.init();
 crt.init();

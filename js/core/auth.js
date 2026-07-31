@@ -2,10 +2,10 @@
  * Auth — регистрация, вход, сессия, ограничение доступа.
  */
 
-import { store } from './store.js?v=7';
-import { storage } from '../utils/storage.js?v=7';
-import { bus, EV } from './bus.js?v=7';
-import { trace } from './trace.js?v=7';
+import { store } from './store.js?v=9';
+import { storage } from '../utils/storage.js?v=9';
+import { bus, EV } from './bus.js?v=9';
+import { trace } from './trace.js?v=9';
 
 const SESSION = 'session';
 
