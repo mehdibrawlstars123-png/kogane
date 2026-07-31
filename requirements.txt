@@ -1,0 +1,8 @@
+# Границы, а не жёсткие версии: проверено на fastapi 0.141, uvicorn 0.52,
+# SQLAlchemy 2.0.51, psycopg 3.3.4, pydantic 2.13. Внутри мажорной ветки
+# обновление безопасно, переход на следующую — нет.
+fastapi>=0.115,<1.0
+uvicorn[standard]>=0.34,<1.0
+SQLAlchemy>=2.0.36,<2.1
+psycopg[binary]>=3.2,<4.0
+pydantic>=2.10,<3.0

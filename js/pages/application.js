@@ -3,29 +3,32 @@
  * валидация и отправка на рассмотрение распорядителю.
  */
 
-import { $, $$, on, create } from '../core/dom.js?v=9';
-import { store } from '../core/store.js?v=9';
-import { auth } from '../core/auth.js?v=9';
-import { crt } from '../core/crt.js?v=9';
-import { audio } from '../core/audio.js?v=9';
-import { toast, wireSounds, headTools } from '../core/ui.js?v=9';
-import { esc } from '../core/format.js?v=9';
-import { APPLICATION_SCHEMA } from '../data/seed.js?v=9';
-import { levelOptions, COLONIES } from '../data/labels.js?v=9';
-import { storage } from '../utils/storage.js?v=9';
-import { wait } from '../core/typewriter.js?v=9';
-import { debounce } from '../utils/helpers.js?v=9';
+import { $, $$, on, create } from '../core/dom.js?v=10';
+import { store } from '../core/store.js?v=10';
+import { auth } from '../core/auth.js?v=10';
+import { crt } from '../core/crt.js?v=10';
+import { audio } from '../core/audio.js?v=10';
+import { toast, wireSounds, headTools } from '../core/ui.js?v=10';
+import { esc } from '../core/format.js?v=10';
+import { APPLICATION_SCHEMA } from '../data/seed.js?v=10';
+import { levelOptions, COLONIES } from '../data/labels.js?v=10';
+import { storage } from '../utils/storage.js?v=10';
+import { wait } from '../core/typewriter.js?v=10';
+import { debounce } from '../utils/helpers.js?v=10';
 
-store.init();
 crt.init();
 wireSounds();
+
+await store.init();
 
 const user = auth.guard({ need: 'auth' });
 if (!user) throw new Error('нет доступа');
 
-// Уже отправил или уже принят — здесь ему делать нечего.
-// Прерываем выполнение модуля, чтобы не строить форму «в пустоту».
-if (user.state !== 'registered') {
+// Анкета открыта тем, кто её ещё не подавал, и тем, кому отказали:
+// после отказа участник правит замечания и отправляет заново.
+// Отправленную на рассмотрение и уже одобренную править нечего —
+// прерываем выполнение модуля, чтобы не строить форму «в пустоту».
+if (user.state !== 'registered' && user.state !== 'rejected') {
   window.location.replace(user.state === 'approved' ? 'system.html' : 'pending.html');
   throw new Error('переход на актуальный экран');
 }
@@ -33,7 +36,7 @@ if (user.state !== 'registered') {
 $('#userMail').textContent = user.email;
 $('#appNo').textContent = `№ ${user.id.replace(/[^a-z0-9]/gi, '').slice(-6).toUpperCase()}`;
 $('#headTools').append(headTools({
-  onLogout: () => { auth.logout(); crt.powerOff('../index.html'); },
+  onLogout: async () => { await auth.logout(); crt.powerOff('../index.html'); },
 }));
 
 const DRAFT = `draft:${user.id}`;
@@ -284,10 +287,17 @@ on($('#appForm'), 'submit', async (e) => {
   btn.classList.add('is-busy');
 
   const data = collect();
-  store.submitApplication(user.id, data);
-  store.log(user.email, 'application', `Анкета «${data.name}» отправлена на рассмотрение.`);
-  storage.remove(DRAFT);
 
+  try {
+    await store.submitApplication(user.id, data);
+  } catch (err) {
+    btn.classList.remove('is-busy');
+    audio.err();
+    toast.err('Анкета не отправлена', err.message);
+    return;
+  }
+
+  storage.remove(DRAFT);
   audio.ok();
   toast.ok('Анкета отправлена', 'Заявка передана распорядителю игры.');
   await wait(900);

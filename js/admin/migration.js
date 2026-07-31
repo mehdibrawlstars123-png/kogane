@@ -2,14 +2,14 @@
  * Админ: управление миграцией, журнал, база системы.
  */
 
-import { $, $$, on } from '../core/dom.js?v=9';
-import { store } from '../core/store.js?v=9';
-import { esc, dt, dtFull, pts, ago } from '../core/format.js?v=9';
-import { modal, toast } from '../core/ui.js?v=9';
-import { notify } from '../core/notify.js?v=9';
-import { crt } from '../core/crt.js?v=9';
-import { audio } from '../core/audio.js?v=9';
-import { COLONIES } from '../data/labels.js?v=9';
+import { $, $$, on } from '../core/dom.js?v=10';
+import { store } from '../core/store.js?v=10';
+import { esc, dt, dtFull, pts, ago } from '../core/format.js?v=10';
+import { modal, toast } from '../core/ui.js?v=10';
+import { notify } from '../core/notify.js?v=10';
+import { crt } from '../core/crt.js?v=10';
+import { audio } from '../core/audio.js?v=10';
+import { COLONIES } from '../data/labels.js?v=10';
 
 /* ==================== Миграция ==================== */
 
@@ -98,10 +98,11 @@ export const migrationAdmin = {
         </div>
       </div>`;
 
-    on($('#mNoteSave', root), 'click', () => {
+    on($('#mNoteSave', root), 'click', async () => {
       const note = $('#mNote', root).value.trim();
-      store.commit((d) => { d.migration.note = note; });
-      store.log(ctx.admin.email, 'migration-note', `Распоряжение обновлено: ${note}`);
+      try {
+        await store.setMigrationNote(note);
+      } catch (err) { toast.err('Не сохранено', err.message); return; }
       toast.ok('Распоряжение сохранено');
     });
 
@@ -114,9 +115,11 @@ export const migrationAdmin = {
       });
       if (note === null) return;
 
-      store.startMigration(note);
-      notify.emit('migStart', { number: store.migration().number, actor: ctx.admin.email }, { target: 'all' });
-      store.log(ctx.admin.email, 'migration-start', `Миграция №${store.migration().number} начата.`);
+      try {
+        await store.startMigration(note);
+      } catch (err) { toast.err('Не удалось начать', err.message); return; }
+
+      notify.emit('migStart', { number: store.migration().number });
       audio.ok();
       crt.tear($('.screen'));
       refresh();
@@ -140,9 +143,9 @@ export const migrationAdmin = {
       if (note === null) return;
 
       const number = store.migration().number;
-      store.endMigration(note);
-      notify.emit('migEnd', { number, text: note, actor: ctx.admin.email }, { target: 'all' });
-      store.log(ctx.admin.email, 'migration-end', `Миграция №${number} завершена. ${note}`, 'danger');
+      try {
+        await store.endMigration(note);
+      } catch (err) { toast.err('Не удалось завершить', err.message); return; }
 
       audio.death();
       crt.glitch($('.screen'), 900);
@@ -226,7 +229,8 @@ export const baseAdmin = {
   jp: '基盤',
 
   render(root, ctx) {
-    const db = store.db;
+    const npcs = store.npcs();
+    const security = store.security();
 
     root.innerHTML = `
       <div class="sec-head">
@@ -236,12 +240,12 @@ export const baseAdmin = {
       </div>
 
       <div class="astats">
-        <div class="tile"><span class="tile__key">Аккаунтов</span><span class="tile__val jp">${pts(db.users.length, 2)}</span></div>
-        <div class="tile"><span class="tile__key">Записей реестра</span><span class="tile__val jp">${pts(db.npcs.length, 2)}</span></div>
-        <div class="tile"><span class="tile__key">Правил магазина</span><span class="tile__val jp">${pts(db.shopRules.length, 2)}</span></div>
-        <div class="tile"><span class="tile__key">Уведомлений</span><span class="tile__val jp">${pts(db.notifications.length, 3)}</span></div>
-        <div class="tile"><span class="tile__key">Записей журнала</span><span class="tile__val jp">${pts(db.logs.length, 3)}</span></div>
-        <div class="tile"><span class="tile__key">База создана</span><span class="tile__val tile__val--text fs-xs">${ago(db.createdAt)}</span></div>
+        <div class="tile"><span class="tile__key">Аккаунтов</span><span class="tile__val jp">${pts(store.users().length, 2)}</span></div>
+        <div class="tile"><span class="tile__key">Записей реестра</span><span class="tile__val jp">${pts(npcs.length, 2)}</span></div>
+        <div class="tile"><span class="tile__key">Правил магазина</span><span class="tile__val jp">${pts(store.shopRules().length, 2)}</span></div>
+        <div class="tile"><span class="tile__key">Уведомлений</span><span class="tile__val jp">${pts(store.notifications('all').length, 3)}</span></div>
+        <div class="tile"><span class="tile__key">Записей журнала</span><span class="tile__val jp">${pts(store.logs().length, 3)}</span></div>
+        <div class="tile"><span class="tile__key">Хранилище</span><span class="tile__val tile__val--text fs-xs">${store.storage()}</span></div>
       </div>
 
       <div class="panel panel--framed mt-4">
@@ -249,7 +253,7 @@ export const baseAdmin = {
           <span class="panel__title">Безопасность</span>
           <span class="panel__jp jp">秘密符号</span>
           <span class="panel__tools fs-xxs muted">
-            ${db.security?.codeChanged ? `код изменён ${dt(db.security.updatedAt)}` : 'используется код по умолчанию'}
+            ${security.codeChanged ? 'код изменён' : 'используется код по умолчанию'}
           </span>
         </div>
         <div class="panel__body">
@@ -261,14 +265,14 @@ export const baseAdmin = {
             <label class="field">
               <span class="field__label">Новый секретный код</span>
               <span class="field__wrap">
-                <input class="field__input" id="secCode" type="text" autocomplete="off"
+                <input class="field__input" id="secCode" type="password" autocomplete="new-password"
                        placeholder="не короче 4 символов" />
               </span>
             </label>
             <label class="field">
               <span class="field__label">Новый пароль распорядителя</span>
               <span class="field__wrap">
-                <input class="field__input" id="secPass" type="text" autocomplete="off"
+                <input class="field__input" id="secPass" type="password" autocomplete="new-password"
                        placeholder="не короче 6 символов" />
               </span>
             </label>
@@ -287,13 +291,11 @@ export const baseAdmin = {
           <div class="panel__head"><span class="panel__title">Выгрузка и загрузка</span><span class="panel__jp jp">入出力</span></div>
           <div class="panel__body">
             <p class="fs-xxs mono muted mb-4">
-              База системы хранится в этом браузере (localStorage). Выгрузите её файлом,
-              чтобы перенести состояние игры на другое устройство.
+              Данные хранятся в базе PostgreSQL на сервере и общие для всех участников.
+              Выгрузка снимает копию текущего состояния — на случай разбора спорных ситуаций.
             </p>
             <div class="btn-row">
-              <button class="btn btn--sm btn--primary" type="button" id="dbExport">Выгрузить в файл</button>
-              <button class="btn btn--sm btn--ghost" type="button" id="dbImport">Загрузить из файла</button>
-              <input type="file" id="dbFile" accept="application/json" hidden />
+              <button class="btn btn--sm btn--primary" type="button" id="dbExport">Выгрузить копию</button>
             </div>
           </div>
         </div>
@@ -304,9 +306,9 @@ export const baseAdmin = {
             <div class="btn-row mb-4">
               <button class="btn btn--sm btn--ghost" type="button" id="dbClearLogs">Очистить журнал</button>
               <button class="btn btn--sm btn--ghost" type="button" id="dbClearNotices">Очистить уведомления</button>
-              ${db.npcs.length
+              ${npcs.length
                 ? `<button class="btn btn--sm btn--ghost" type="button" id="dbClearNpcs">
-                     Убрать демо-реестр (${db.npcs.length})
+                     Убрать демо-реестр (${npcs.length})
                    </button>`
                 : `<button class="btn btn--sm btn--ghost" type="button" id="dbLoadNpcs">
                      Загрузить демо-реестр
@@ -346,14 +348,9 @@ export const baseAdmin = {
       });
       if (!ok) return;
 
-      if (code) {
-        store.setAdminCode(code);
-        store.log(ctx.admin.email, 'code-change', 'Секретный код администрации изменён.', 'warn');
-      }
-      if (pass) {
-        store.setAdminPassword(pass);
-        store.log(ctx.admin.email, 'pass-change', 'Пароль распорядителя изменён.', 'warn');
-      }
+      try {
+        await store.setSecurity({ code: code || null, password: pass || null });
+      } catch (err) { toast.err('Не сохранено', err.message); return; }
 
       toast.ok('Доступ обновлён', code && pass ? 'Код и пароль заменены' : (code ? 'Код заменён' : 'Пароль заменён'));
       this.render(root, ctx);
@@ -370,8 +367,9 @@ export const baseAdmin = {
       });
       if (!ok) return;
 
-      const count = store.clearNpcs();
-      store.log(ctx.admin.email, 'db-clear-npcs', `Удалено демо-записей реестра: ${count}.`, 'warn');
+      let count = 0;
+      try { count = await store.clearNpcs(); }
+      catch (err) { toast.err('Не удалось очистить', err.message); return; }
       toast.ok('Реестр очищен', `Удалено записей: ${count}`);
       this.render(root, ctx);
     });
@@ -386,48 +384,34 @@ export const baseAdmin = {
       });
       if (!ok) return;
 
-      const count = store.loadDemoRoster();
-      store.log(ctx.admin.email, 'db-load-npcs', `Загружено демо-записей: ${count}.`);
+      let count = 0;
+      try { count = await store.loadDemoRoster(); }
+      catch (err) { toast.err('Не удалось загрузить', err.message); return; }
       toast.ok('Демо-реестр загружен', `Записей: ${count}`);
       this.render(root, ctx);
     });
 
-    on($('#dbExport', root), 'click', () => {
-      const blob = new Blob([store.export()], { type: 'application/json' });
+    on($('#dbExport', root), 'click', async () => {
+      const blob = new Blob([await store.exportState()], { type: 'application/json' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
       a.download = `kogane-db-${new Date().toISOString().slice(0, 10)}.json`;
       a.click();
       URL.revokeObjectURL(a.href);
-      store.log(ctx.admin.email, 'db-export', 'База выгружена в файл.');
       toast.ok('База выгружена');
-    });
-
-    on($('#dbImport', root), 'click', () => $('#dbFile', root).click());
-
-    on($('#dbFile', root), 'change', async (e) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-      try {
-        store.import(await file.text());
-        toast.ok('База загружена', 'Состояние системы восстановлено.');
-        setTimeout(() => location.reload(), 900);
-      } catch (err) {
-        toast.err('Ошибка загрузки', err.message);
-      }
     });
 
     on($('#dbClearLogs', root), 'click', async () => {
       if (!await modal.confirm({ title: 'Очистка журнала', jp: '記録削除', text: 'Удалить все записи журнала?', danger: true, okText: 'Очистить' })) return;
-      store.commit((d) => { d.logs = []; });
-      store.log(ctx.admin.email, 'db-clear-logs', 'Журнал очищен.', 'warn');
+      try { await store.clearLogs(); }
+      catch (err) { toast.err('Не удалось очистить', err.message); return; }
       this.render(root, ctx);
     });
 
     on($('#dbClearNotices', root), 'click', async () => {
       if (!await modal.confirm({ title: 'Очистка уведомлений', jp: '通知削除', text: 'Удалить всю историю уведомлений участников?', danger: true, okText: 'Очистить' })) return;
-      store.commit((d) => { d.notifications = []; });
-      store.log(ctx.admin.email, 'db-clear-notices', 'История уведомлений очищена.', 'warn');
+      try { await store.clearNotices(); }
+      catch (err) { toast.err('Не удалось очистить', err.message); return; }
       this.render(root, ctx);
     });
 
@@ -445,7 +429,8 @@ export const baseAdmin = {
       });
       if (word !== 'СБРОС') { toast.err('Сброс отменён', 'Подтверждение не совпало.'); return; }
 
-      store.reset();
+      try { await store.resetSystem(); }
+      catch (err) { toast.err('Сброс не выполнен', err.message); return; }
       crt.glitch($('.screen'), 800);
       toast.show({ type: 'migEnd', title: 'Система сброшена', text: 'База возвращена к начальному состоянию.', alert: true });
       setTimeout(() => location.replace('../index.html'), 1400);

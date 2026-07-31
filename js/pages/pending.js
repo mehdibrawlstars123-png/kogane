@@ -3,29 +3,34 @@
  * Слушает изменения базы — решение админа из другой вкладки приходит сразу.
  */
 
-import { $, on } from '../core/dom.js?v=9';
-import { store } from '../core/store.js?v=9';
-import { auth } from '../core/auth.js?v=9';
-import { crt } from '../core/crt.js?v=9';
-import { audio } from '../core/audio.js?v=9';
-import { wireSounds, headTools, toast } from '../core/ui.js?v=9';
-import { bus, EV } from '../core/bus.js?v=9';
-import { esc, dt } from '../core/format.js?v=9';
-import { APPLICATION_SCHEMA } from '../data/seed.js?v=9';
-import { levelById, COLONIES } from '../data/labels.js?v=9';
-import { kogane } from '../core/sprites.js?v=9';
-import { wait } from '../core/typewriter.js?v=9';
+import { $, on } from '../core/dom.js?v=10';
+import { store } from '../core/store.js?v=10';
+import { auth } from '../core/auth.js?v=10';
+import { crt } from '../core/crt.js?v=10';
+import { audio } from '../core/audio.js?v=10';
+import { wireSounds, headTools, toast } from '../core/ui.js?v=10';
+import { bus, EV } from '../core/bus.js?v=10';
+import { esc, dt } from '../core/format.js?v=10';
+import { APPLICATION_SCHEMA } from '../data/seed.js?v=10';
+import { levelById, COLONIES } from '../data/labels.js?v=10';
+import { kogane } from '../core/sprites.js?v=10';
+import { wait } from '../core/typewriter.js?v=10';
 
-store.init();
 crt.init();
 wireSounds();
+
+await store.init();
+store.startPolling(4000);
 
 let user = auth.guard({ need: 'auth' });
 if (!user) throw new Error('нет доступа');
 
+// Экран закреплён за тем, кто его открыл
+const SESSION_ID = user.id;
+
 $('#userMail').textContent = user.email;
 $('#headTools').append(headTools({
-  onLogout: () => { auth.logout(); crt.powerOff('../index.html'); },
+  onLogout: async () => { await auth.logout(); crt.powerOff('../index.html'); },
 }));
 
 /* ---------------- Предпросмотр анкеты ---------------- */
@@ -64,8 +69,9 @@ function previewMarkup(app) {
 /* ---------------- Отрисовка состояния ---------------- */
 
 function render() {
-  user = store.userById(user.id);
-  if (!user) { auth.logout(); window.location.replace('../index.html'); return; }
+  const fresh = store.auth();
+  if (!fresh || fresh.id !== SESSION_ID) { window.location.replace('../index.html'); return; }
+  user = fresh;
 
   const el = $('#verdict');
 
@@ -101,10 +107,8 @@ function render() {
 
     audio.err();
     crt.glitch($('.screen'), 500);
-    on($('#again'), 'click', () => {
-      store.updateUser(user.id, { state: 'registered' });
-      crt.wipeTo('application.html');
-    });
+    // Анкету можно исправить и подать снова: сервер примет новую заявку
+    on($('#again'), 'click', () => crt.wipeTo('application.html'));
     return;
   }
 
@@ -139,8 +143,16 @@ let lastState = user.state;
 let timer = null;
 
 const watch = () => {
-  const fresh = store.userById(user.id);
-  if (!fresh || fresh.state === lastState) return;
+  const fresh = store.auth();
+
+  // Сессия оборвалась или в браузере вошли под другим лицом
+  if (!fresh || fresh.id !== SESSION_ID) {
+    store.stopPolling();
+    window.location.replace('../index.html');
+    return;
+  }
+
+  if (fresh.state === lastState) return;
 
   lastState = fresh.state;
   clearInterval(timer);

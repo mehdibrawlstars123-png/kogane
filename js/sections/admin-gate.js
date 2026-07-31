@@ -3,13 +3,13 @@
  * Игроку — отказ доступа, распорядителю — переход в панель.
  */
 
-import { $, on } from '../core/dom.js?v=9';
-import { store } from '../core/store.js?v=9';
-import { crt } from '../core/crt.js?v=9';
-import { audio } from '../core/audio.js?v=9';
-import { esc, dt } from '../core/format.js?v=9';
-import { JP } from '../data/labels.js?v=9';
-import { sprite } from '../core/sprites.js?v=9';
+import { $, on } from '../core/dom.js?v=10';
+import { store } from '../core/store.js?v=10';
+import { crt } from '../core/crt.js?v=10';
+import { audio } from '../core/audio.js?v=10';
+import { esc, dt } from '../core/format.js?v=10';
+import { JP } from '../data/labels.js?v=10';
+import { sprite } from '../core/sprites.js?v=10';
 
 export const adminGate = {
   id: 'admin',
@@ -37,7 +37,6 @@ export const adminGate = {
 
       audio.err();
       crt.glitch(root.querySelector('.panel'), 500);
-      store.log(user.email, 'access-denied', 'Попытка входа в раздел администрации.', 'warn');
       return root;
     }
 

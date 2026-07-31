@@ -1,28 +1,36 @@
-# Конфигурация Render для статического сайта.
-# Собирать нечего: это чистые HTML/CSS/JS без сборщика,
-# публикуется корень репозитория как есть.
+# Запасная площадка: Render как веб-сервис.
+# Основная площадка — Railway (railway.json + Procfile).
+#
+# Статическим сайтом проект больше не публикуется: интерфейс без сервера
+# работать не будет, потому что данные лежат в PostgreSQL. Если сервис на
+# Render уже создан как Static Site — его нужно пересоздать как Web Service.
 
 services:
   - type: web
     name: kogane
-    runtime: static
-
-    # Сборки нет — команда пустая
-    buildCommand: ""
-
-    # Корень репозитория: index.html лежит прямо в нём
-    staticPublishPath: .
-
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn server.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
     pullRequestPreviewsEnabled: false
 
-    headers:
-      # Ничего не держим в кеше без проверки: браузер обязан спросить сервер,
-      # изменился ли файл. Иначе старый модуль из кеша встречается с новой
-      # разметкой — и интерфейс ведёт себя необъяснимо.
-      # Файлы маленькие, ответ 304 почти ничего не стоит.
-      - path: /*
-        name: Cache-Control
-        value: no-cache
-      - path: /*
-        name: X-Content-Type-Options
-        value: nosniff
+    envVars:
+      # Адрес базы. На Render его даёт блок databases ниже,
+      # на Railway переменная появляется сама вместе с PostgreSQL.
+      - key: DATABASE_URL
+        fromDatabase:
+          name: kogane-db
+          property: connectionString
+
+      # Доступ распорядителя. Читается один раз — при создании базы.
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: ADMIN_CODE
+        sync: false
+
+databases:
+  - name: kogane-db
+    databaseName: kogane
+    plan: free

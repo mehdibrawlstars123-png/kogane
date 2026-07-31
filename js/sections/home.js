@@ -2,12 +2,12 @@
  * Раздел «Главная» — сводка состояния миграции и участника.
  */
 
-import { $, $$ } from '../core/dom.js?v=9';
-import { store } from '../core/store.js?v=9';
-import { esc, pts, dt, daysLeft, plural } from '../core/format.js?v=9';
-import { colonyById, levelById, STATUSES, JP } from '../data/labels.js?v=9';
-import { kogane, sprite } from '../core/sprites.js?v=9';
-import { type, countTo, scramble } from '../core/typewriter.js?v=9';
+import { $, $$ } from '../core/dom.js?v=10';
+import { store } from '../core/store.js?v=10';
+import { esc, pts, dt, daysLeft, plural } from '../core/format.js?v=10';
+import { colonyById, levelById, STATUSES, JP } from '../data/labels.js?v=10';
+import { kogane, sprite } from '../core/sprites.js?v=10';
+import { type, countTo, scramble } from '../core/typewriter.js?v=10';
 
 export const home = {
   id: 'home',

@@ -30,3 +30,10 @@ desktop.ini
 # Logs
 *.log
 npm-debug.log*
+
+# Локальная база и окружение Python
+kogane.db
+__pycache__/
+*.pyc
+.venv/
+venv/

@@ -1,23 +1,18 @@
 /**
- * Auth — регистрация, вход, сессия, ограничение доступа.
+ * Auth — вход, регистрация и ограничение доступа.
+ *
+ * Проверку пароля и кода делает сервер. Здесь хранится только токен
+ * сессии, а текущий участник берётся из снимка состояния.
  */
 
-import { store } from './store.js?v=9';
-import { storage } from '../utils/storage.js?v=9';
-import { bus, EV } from './bus.js?v=9';
-import { trace } from './trace.js?v=9';
-
-const SESSION = 'session';
+import { store } from './store.js?v=10';
+import { api } from './api.js?v=10';
+import { bus, EV } from './bus.js?v=10';
+import { trace } from './trace.js?v=10';
 
 export const auth = {
-  /** Текущий пользователь или null */
-  current() {
-    const id = storage.get(SESSION);
-    if (!id) return null;
-    const user = store.userById(id);
-    if (!user) { storage.remove(SESSION); return null; }
-    return user;
-  },
+  /** Текущий участник из снимка состояния */
+  current() { return store.auth(); },
 
   isAdmin() { return this.current()?.role === 'admin'; },
 
@@ -25,8 +20,8 @@ export const auth = {
     return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(email).trim());
   },
 
-  /** Регистрация: почта и созданный пароль. Анкета заполняется следующим шагом. */
-  register({ email, password, passwordConfirm }) {
+  /** Регистрация: почта и созданный пароль. Анкета — следующим шагом. */
+  async register({ email, password, passwordConfirm }) {
     const mail = String(email || '').trim();
 
     if (!this.validateEmail(mail)) throw new Error('Адрес почты не распознан системой');
@@ -34,74 +29,55 @@ export const auth = {
     if (passwordConfirm != null && password !== passwordConfirm) {
       throw new Error('Пароли не совпадают');
     }
-    if (store.userByEmail(mail)) throw new Error('Этот адрес уже зарегистрирован в барьере');
 
-    const user = store.createUser({ email: mail, password });
-    store.log(mail, 'register', 'Новая регистрация в системе.');
-    storage.set(SESSION, user.id);
-    trace('регистрация: успех', `${mail} · id ${user.id}`);
-    bus.emit(EV.authChange, user);
-    return user;
+    const res = await api.post('/api/auth/register', { email: mail, password });
+    api.token = res.token;
+    await store.refresh({ silent: true });
+
+    trace('регистрация: успех', mail);
+    bus.emit(EV.authChange, res.user);
+    return res.user;
   },
 
-  /** Вход участника. Учётная запись распорядителя этим каналом не входит. */
-  login({ email, password }) {
-    const user = store.userByEmail(email);
-    if (!user || user.pass !== store.hash(String(password || ''))) {
-      throw new Error('Неверная почта или пароль');
-    }
+  /** Вход участника. Распорядитель этим каналом не входит. */
+  async login({ email, password }) {
+    const res = await api.post('/api/auth/login', { email: String(email).trim(), password });
+    api.token = res.token;
+    await store.refresh({ silent: true });
 
-    if (user.role === 'admin') {
-      store.log(String(email), 'login-denied', 'Попытка входа распорядителя через канал участника.', 'warn');
-      throw new Error('Эта учётная запись входит только через канал администрации');
-    }
-
-    storage.set(SESSION, user.id);
-    store.log(user.email, 'login', 'Вход в систему.');
-    trace('вход: успех', `${user.email} · состояние ${user.state}`);
-    bus.emit(EV.authChange, user);
-    return user;
+    trace('вход: успех', `${res.user.email} · состояние ${res.user.state}`);
+    bus.emit(EV.authChange, res.user);
+    return res.user;
   },
 
-  /**
-   * Вход распорядителя игры: почта, пароль и секретный код системы.
-   * Код хранится хешем и меняется в самой панели.
-   */
-  loginAdmin({ email, password, code }) {
-    const user = store.userByEmail(email);
+  /** Вход распорядителя: почта, пароль и секретный код системы */
+  async loginAdmin({ email, password, code }) {
+    const res = await api.post('/api/auth/admin', {
+      email: String(email).trim(), password, code,
+    });
+    api.token = res.token;
+    await store.refresh({ silent: true });
 
-    if (!store.checkAdminCode(code)) {
-      store.log(String(email || '—'), 'code-denied', 'Неверный секретный код администрации.', 'danger');
-      throw new Error('Секретный код отклонён системой');
-    }
-
-    if (!user || user.role !== 'admin' || user.pass !== store.hash(String(password || ''))) {
-      store.log(String(email || '—'), 'login-denied', 'Отказ входа в администрацию.', 'warn');
-      throw new Error('Неверная почта или пароль распорядителя');
-    }
-
-    storage.set(SESSION, user.id);
-    store.log(user.email, 'login-admin', 'Вход распорядителя игры подтверждён кодом.');
-    trace('вход администрации: успех', user.email);
-    bus.emit(EV.authChange, user);
-    return user;
+    trace('вход администрации: успех', res.user.email);
+    bus.emit(EV.authChange, res.user);
+    return res.user;
   },
 
-  logout() {
-    const user = this.current();
-    if (user) store.log(user.email, 'logout', 'Выход из системы.');
-    storage.remove(SESSION);
+  async logout() {
+    try { await api.post('/api/auth/logout'); } catch { /* сессия и так недействительна */ }
+    api.token = null;
     bus.emit(EV.authChange, null);
   },
 
   /**
    * Проверяет доступ и при необходимости перебрасывает.
-   * @param {object} opts { need: 'auth'|'approved'|'admin', to: string }
+   * Вызывается после store.init(), когда снимок уже загружен.
    */
   guard({ need = 'auth', to = null } = {}) {
     const user = this.current();
-    const base = window.location.pathname.includes('/pages/') ? '' : 'pages/';
-    const root = window.location.pathname.includes('/pages/') ? '../' : '';
+    const inPages = window.location.pathname.includes('/pages/');
+    const base = inPages ? '' : 'pages/';
+    const root = inPages ? '../' : '';
 
     const go = (url, why) => {
       trace('доступ: перенаправление', `${why} → ${url}`);
@@ -124,7 +100,7 @@ export const auth = {
     return user;
   },
 
-  /** Куда отправить пользователя после входа */
+  /** Куда отправить участника после входа */
   routeFor(user) {
     const inPages = window.location.pathname.includes('/pages/');
     const p = inPages ? '' : 'pages/';

@@ -6,12 +6,12 @@
  * пропуска, страховочный таймер и переход даже при ошибке в анимации.
  */
 
-import { $, on } from '../core/dom.js?v=9';
-import { audio } from '../core/audio.js?v=9';
-import { type, wait } from '../core/typewriter.js?v=9';
-import { auth } from '../core/auth.js?v=9';
-import { notify } from '../core/notify.js?v=9';
-import { trace } from '../core/trace.js?v=9';
+import { $, on } from '../core/dom.js?v=10';
+import { audio } from '../core/audio.js?v=10';
+import { type, wait } from '../core/typewriter.js?v=10';
+import { auth } from '../core/auth.js?v=10';
+import { notify } from '../core/notify.js?v=10';
+import { trace } from '../core/trace.js?v=10';
 
 const STEPS = [
   { jp: '接続中',   ru: 'Подключение к глобальному барьеру...', sub: 'TENGEN BARRIER NETWORK / HANDSHAKE', at: 22 },

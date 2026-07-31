@@ -2,23 +2,25 @@
  * Панель распорядителя игры — оркестратор разделов админки.
  */
 
-import { $, $$, on } from '../core/dom.js?v=9';
-import { store } from '../core/store.js?v=9';
-import { auth } from '../core/auth.js?v=9';
-import { crt } from '../core/crt.js?v=9';
-import { audio } from '../core/audio.js?v=9';
-import { bus, EV } from '../core/bus.js?v=9';
-import { wireSounds, headTools } from '../core/ui.js?v=9';
+import { $, $$, on } from '../core/dom.js?v=10';
+import { store } from '../core/store.js?v=10';
+import { auth } from '../core/auth.js?v=10';
+import { crt } from '../core/crt.js?v=10';
+import { audio } from '../core/audio.js?v=10';
+import { bus, EV } from '../core/bus.js?v=10';
+import { wireSounds, headTools } from '../core/ui.js?v=10';
 
-import { dash } from '../admin/dash.js?v=9';
-import { applications } from '../admin/applications.js?v=9';
-import { participants } from '../admin/participants.js?v=9';
-import { rulesAdmin, noticesAdmin, broadcastAdmin } from '../admin/content.js?v=9';
-import { migrationAdmin, logsAdmin, baseAdmin } from '../admin/migration.js?v=9';
+import { dash } from '../admin/dash.js?v=10';
+import { applications } from '../admin/applications.js?v=10';
+import { participants } from '../admin/participants.js?v=10';
+import { rulesAdmin, noticesAdmin, broadcastAdmin } from '../admin/content.js?v=10';
+import { migrationAdmin, logsAdmin, baseAdmin } from '../admin/migration.js?v=10';
 
-store.init();
 crt.init();
 wireSounds();
+
+await store.init();
+store.startPolling(5000);
 
 const admin = auth.guard({ need: 'admin' });
 if (!admin) throw new Error('нет доступа');
@@ -94,7 +96,7 @@ on(window, 'hashchange', () => {
 
 /* Инструменты */
 $('#headTools').append(headTools({
-  onLogout: () => { auth.logout(); crt.powerOff('../index.html'); },
+  onLogout: async () => { await auth.logout(); crt.powerOff('../index.html'); },
 }));
 
 /* Часы */
@@ -103,8 +105,17 @@ const tick = () => { clockEl.textContent = new Date().toLocaleTimeString('ru-RU'
 tick();
 setInterval(tick, 1000);
 
-/* Синхронизация с другими вкладками */
+/* Синхронизация с сервером */
 bus.on(EV.dbSync, () => {
+  // Панель закреплена за распорядителем: если сессия оборвалась или в браузере
+  // вошли под участником, панель не должна остаться открытой.
+  const now = store.auth();
+  if (!now || now.id !== admin.id || now.role !== 'admin') {
+    store.stopPolling();
+    window.location.replace('../index.html');
+    return;
+  }
+
   paintHead();
   if (['dash', 'applications', 'participants', 'logs'].includes(current)) {
     go(current, { announce: false });

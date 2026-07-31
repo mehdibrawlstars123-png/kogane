@@ -132,44 +132,54 @@
       navigator.cookieEnabled ? 'да' : 'НЕТ — часто вместе с этим блокируется и хранилище');
   }
 
-  /* ============ 2. Хранилище (критично) ============ */
-  function checkStorage() {
-    section('ХРАНИЛИЩЕ ДАННЫХ (КРИТИЧНО)');
+  /* ============ 2. Сервер и база (критично) ============ */
+  // Данные лежат в PostgreSQL на сервере. В браузере хранится только
+  // токен сессии и мелкие настройки вроде громкости.
+  function checkStorage(done) {
+    section('СЕРВЕР И БАЗА ДАННЫХ (КРИТИЧНО)');
+
     try {
       var key = '__kogane_diag__';
       localStorage.setItem(key, 'проверка-123');
       var back = localStorage.getItem(key);
       localStorage.removeItem(key);
-
-      if (back === 'проверка-123') {
-        add('ok', 'localStorage: запись и чтение', 'работает');
-      } else {
-        add('bad', 'localStorage: записалось, но прочиталось другое', 'получено: ' + back);
-      }
+      add(back === 'проверка-123' ? 'ok' : 'bad', 'localStorage: запись и чтение',
+        back === 'проверка-123' ? 'работает — токен входа сохранится'
+                                : 'записалось, но прочиталось другое: ' + back);
     } catch (e) {
       add('bad', 'localStorage НЕДОСТУПЕН', e.name + ': ' + e.message
-        + ' — без него система работать не может: в нём хранятся аккаунты и вход');
+        + ' — вход не сохранится между страницами');
     }
 
-    try {
-      sessionStorage.setItem('__d__', '1');
-      sessionStorage.removeItem('__d__');
-      add('ok', 'sessionStorage', 'работает');
-    } catch (e) {
-      add('warn', 'sessionStorage недоступен', e.message);
-    }
+    var token = null;
+    try { token = JSON.parse(localStorage.getItem('kogane:token') || 'null'); } catch (e) {}
+    add('ok', 'Токен сессии', token ? 'есть' : 'нет (вход не выполнен)');
 
-    // Сколько уже записано системой
-    try {
-      var db = localStorage.getItem('kogane:db:v1');
-      var session = localStorage.getItem('kogane:session');
-      add('ok', 'База системы в браузере',
-        db ? ('есть, ' + db.length + ' символов, аккаунтов: '
-              + ((JSON.parse(db).users || []).length)) : 'ещё не создана (это нормально при первом заходе)');
-      add('ok', 'Активная сессия', session ? session : 'нет (не выполнен вход)');
-    } catch (e) {
-      add('bad', 'База системы повреждена', e.message);
-    }
+    fetch('/api/health', { cache: 'no-store' })
+      .then(function (r) { return r.ok ? r.json() : Promise.reject(new Error('код ' + r.status)); })
+      .then(function (h) {
+        add('ok', 'Сервер отвечает', '/api/health — да');
+        add(h.database === 'postgresql' ? 'ok' : 'warn', 'Хранилище',
+          h.database === 'postgresql' ? 'PostgreSQL'
+                                      : 'SQLite — локальный файл, для сети нужен PostgreSQL');
+        return fetch('/api/state', {
+          cache: 'no-store',
+          headers: token ? { Authorization: 'Bearer ' + token } : {}
+        });
+      })
+      .then(function (r) { return r.json(); })
+      .then(function (st) {
+        add('ok', 'Состояние системы получено',
+          'базовых правил: ' + (st.baseRules || []).length
+          + ', участников: ' + (st.participants || []).length
+          + ', вход: ' + (st.auth ? st.auth.email : 'нет'));
+        done();
+      })
+      .catch(function (e) {
+        add('bad', 'Сервер недоступен', e.message
+          + ' — сайт открыт без запущенного сервера или база не подключена');
+        done();
+      });
   }
 
   /* ============ 3. Файлы сайта ============ */
@@ -179,8 +189,8 @@
     { path: 'index.html',              marker: 'setTimeout(leave, 500)', why: 'аварийный выход с экрана подключения' },
     { path: 'js/modules/connect.js',   marker: '__koganeConnect',        why: 'обработчик кнопки «Продолжить»' },
     { path: 'js/pages/auth.js',        marker: 'function regStep',       why: 'пошаговая регистрация' },
-    { path: 'js/core/store.js',        marker: 'checkAdminCode',         why: 'секретный код администрации' },
-    { path: 'css/main.css',            marker: 'variables.css?v=9',      why: 'версии стилей' },
+    { path: 'js/core/store.js',        marker: 'startPolling',           why: 'связь с сервером' },
+    { path: 'css/main.css',            marker: 'variables.css?v=10',      why: 'версии стилей' },
     { path: 'pages/system.html' },
     { path: 'pages/application.html' },
     { path: 'pages/pending.html' },
@@ -265,28 +275,22 @@
     add(supports ? 'ok' : 'bad', 'Браузер поддерживает ES-модули',
       supports ? 'да' : 'НЕТ — браузер слишком старый, система не запустится');
 
-    import('./js/core/store.js?v=9&diag=' + Date.now())
+    import('./js/core/store.js?v=10&diag=' + Date.now())
       .then(function (m) {
         add('ok', 'Загрузка ядра store.js', 'модуль выполнился');
-
-        try {
-          m.store.init();
-          var users = m.store.users().length;
-          add('ok', 'Инициализация базы', 'аккаунтов в базе: ' + users);
-
-          // Проверка записи: создаём и удаляем тестовую запись
-          var probe = m.store.createUser({ email: 'diag-probe@kogane.jp', password: 'diagprobe' });
-          var raw = localStorage.getItem('kogane:db:v1');
-          var saved = raw && raw.indexOf('diag-probe@kogane.jp') !== -1;
-          m.store.deleteUser(probe.id);
-
-          add(saved ? 'ok' : 'bad', 'Сохранение данных на диск браузера',
-            saved ? 'запись подтверждена' : 'ЗАПИСЬ НЕ СОХРАНИЛАСЬ — регистрация работать не будет');
-        } catch (e) {
-          add('bad', 'Ошибка внутри ядра', e.name + ': ' + e.message);
-        }
-
-        return import('./js/modules/connect.js?v=9&diag=' + Date.now());
+        // init() запрашивает состояние у сервера, поэтому ждём ответа
+        return m.store.init()
+          .then(function () {
+            add('ok', 'Связь ядра с сервером',
+              'правил в своде: ' + m.store.baseRules().length
+              + ', участников: ' + m.store.participants().length);
+          })
+          .catch(function (e) {
+            add('bad', 'Ядро не получило данные с сервера', e.message);
+          });
+      })
+      .then(function () {
+        return import('./js/modules/connect.js?v=10&diag=' + Date.now());
       })
       .then(function (m) {
         add(typeof m.connectSequence === 'function' ? 'ok' : 'bad',
@@ -311,7 +315,7 @@
     // такого правила экран подключения висел поверх формы входа.
     var link = document.createElement('link');
     link.rel = 'stylesheet';
-    link.href = 'css/main.css?v=9&diag=' + Date.now();
+    link.href = 'css/main.css?v=10&diag=' + Date.now();
 
     link.onload = function () {
       var probe = document.createElement('div');
@@ -422,11 +426,13 @@
     document.getElementById('verdict').textContent = 'Проверка выполняется…';
 
     checkBrowser();
-    checkStorage();
-    checkFiles(function () {
-      checkModules(function () {
-        checkOverlays(function () {
-          checkFonts(finish);
+    // Проверка сервера асинхронная, остальные ждут её результата
+    checkStorage(function () {
+      checkFiles(function () {
+        checkModules(function () {
+          checkOverlays(function () {
+            checkFonts(finish);
+          });
         });
       });
     });

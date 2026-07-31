@@ -4,7 +4,7 @@
     {
       "name": "kogane-dev",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "http.server", "5173"],
+      "runtimeArgs": ["-m", "uvicorn", "server.main:app", "--host", "127.0.0.1", "--port", "5173"],
       "port": 5173
     }
   ]

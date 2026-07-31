@@ -3,15 +3,14 @@
  * Только заранее созданные правила. Своё правило игрок написать не может.
  */
 
-import { $, $$, on } from '../core/dom.js?v=9';
-import { store } from '../core/store.js?v=9';
-import { esc, pts } from '../core/format.js?v=9';
-import { JP } from '../data/labels.js?v=9';
-import { modal, toast } from '../core/ui.js?v=9';
-import { notify } from '../core/notify.js?v=9';
-import { audio } from '../core/audio.js?v=9';
-import { crt } from '../core/crt.js?v=9';
-import { sprite } from '../core/sprites.js?v=9';
+import { $, $$, on } from '../core/dom.js?v=10';
+import { store } from '../core/store.js?v=10';
+import { esc, pts } from '../core/format.js?v=10';
+import { JP } from '../data/labels.js?v=10';
+import { modal, toast } from '../core/ui.js?v=10';
+import { audio } from '../core/audio.js?v=10';
+import { crt } from '../core/crt.js?v=10';
+import { sprite } from '../core/sprites.js?v=10';
 
 let cat = 'all';
 
@@ -97,6 +96,7 @@ export const shop = {
       if (!rule) return;
 
       const fresh = store.userById(user.id);
+      if (!fresh) return; // сессия оборвалась — страница уже уходит на вход
       const points = fresh.character?.points || 0;
 
       if (points < rule.cost) {
@@ -117,30 +117,16 @@ export const shop = {
       btn.classList.add('is-busy');
       crt.tear($('.screen'));
 
-      const left = points - rule.cost;
-      store.commit((d) => {
-        const u = d.users.find((x) => x.id === user.id);
-        u.ownedRules = [...(u.ownedRules || []), rule.id];
-        u.character.points = left;
-        u.character.rules = (u.character.rules || 0) + 1;
-      });
-
-      store.pushRuleHistory({
-        type: 'add',
-        title: rule.title,
-        jp: rule.jp,
-        by: fresh.character.name,
-        colony: fresh.character.colony,
-        ruleId: rule.id,
-      });
-
-      notify.emit('purchase', {
-        title: rule.title, cost: rule.cost, left, actor: fresh.character.name,
-      }, { target: user.id });
-
-      notify.emit('rule', {
-        title: rule.title, by: fresh.character.name,
-      }, { target: 'all', silent: true });
+      try {
+        // Уведомление о покупке присылает сервер — своё не показываем,
+        // иначе участник видит один и тот же тост дважды.
+        await store.buyRule(rule.id);
+      } catch (err) {
+        btn.classList.remove('is-busy');
+        audio.err();
+        toast.err('Покупка не прошла', err.message);
+        return;
+      }
 
       refresh?.();
     }));

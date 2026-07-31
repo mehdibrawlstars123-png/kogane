@@ -1,0 +1,596 @@
+"""
+Операции распорядителя игры: анкеты, участники, правила,
+уведомления, миграция, безопасность и обслуживание базы.
+"""
+
+from typing import Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Header
+from sqlalchemy import select
+
+from .api import (
+    router as _base, require_admin, add_log, notify, setting, save_setting,
+    find_participant, char_of, apply_char, participants, build_state,
+    COLONY_NAMES, LEVEL_NAMES, STATUS_NAMES, check,
+    ApproveIn, RejectIn, PatchParticipant, PointsIn, RuleGrant, MassIn,
+    ShopRuleIn, NoticeIn, BroadcastIn, MigrationIn, SecurityIn,
+)
+from .models import (
+    User, Npc, ShopRule, RuleHistory, Notification, LogEntry, Session as UserSession,
+)
+from .security import hash_secret, new_id, now_ms
+from .seed import DEMO_ROSTER
+
+router = APIRouter(prefix="/api/admin")
+
+
+# ==================== Анкеты ====================
+
+@router.post("/applications/{user_id}/approve")
+def approve(user_id: str, body: ApproveIn, data=Depends(require_admin)):
+    admin, session = data
+    user = session.get(User, user_id)
+    if not user or not user.application:
+        raise HTTPException(404, "Анкета не найдена")
+
+    app = user.application
+    user.state = "approved"
+    user.approved_at = now_ms()
+    user.reject_reason = None
+    user.character = {
+        "name": app.get("name", user.email),
+        "nameJp": app.get("nameJp", ""),
+        "roblox": app.get("roblox", ""),
+        "discord": app.get("discord", ""),
+        "level": check(body.level, LEVEL_NAMES, "уровень"),
+        "points": max(0, body.points),
+        "rules": 0,
+        "colony": check(body.colony, COLONY_NAMES, "колония"),
+        "status": "active",
+    }
+
+    notify(session, "approved", "Анкета одобрена",
+           f"Участник «{app.get('name', '')}» внесён в реестр. "
+           f"Колония: {COLONY_NAMES.get(body.colony, body.colony)}. "
+           "Объявите о начале игры в течение 19 дней.", user.id)
+    add_log(session, admin.email, "approve",
+            f"Анкета «{app.get('name', '')}» одобрена. Колония: {COLONY_NAMES.get(body.colony)}.")
+    session.commit()
+    return {"ok": True}
+
+
+@router.post("/applications/{user_id}/reject")
+def reject(user_id: str, body: RejectIn, data=Depends(require_admin)):
+    admin, session = data
+    user = session.get(User, user_id)
+    if not user:
+        raise HTTPException(404, "Участник не найден")
+
+    user.state = "rejected"
+    user.reject_reason = body.reason
+    notify(session, "rejected", "Анкета отклонена",
+           f"Причина: {body.reason}" if body.reason else "Заявка не прошла проверку распорядителя.",
+           user.id)
+    add_log(session, admin.email, "reject",
+            f"Анкета «{(user.application or {}).get('name', '')}» отклонена. {body.reason}", "warn")
+    session.commit()
+    return {"ok": True}
+
+
+# ==================== Участники ====================
+
+@router.patch("/participants/{pid}")
+def patch_participant(pid: str, body: PatchParticipant, data=Depends(require_admin)):
+    admin, session = data
+    target, is_npc = find_participant(session, pid)
+    before = char_of(target, is_npc)
+
+    patch, changes = {}, []
+    if body.level and body.level != before.get("level"):
+        patch["level"] = check(body.level, LEVEL_NAMES, "уровень")
+        changes.append(f"уровень → {LEVEL_NAMES.get(body.level, body.level)}")
+    if body.colony and body.colony != before.get("colony"):
+        patch["colony"] = check(body.colony, COLONY_NAMES, "колония")
+        changes.append(f"колония → {COLONY_NAMES.get(body.colony, body.colony)}")
+    if body.status and body.status != before.get("status"):
+        patch["status"] = check(body.status, STATUS_NAMES, "статус")
+        changes.append(f"статус → {body.status}")
+    if body.rules is not None and body.rules != before.get("rules"):
+        patch["rules"] = max(0, body.rules)
+        changes.append(f"правил → {body.rules}")
+    if body.points is not None and body.points != before.get("points"):
+        patch["points"] = max(0, body.points)
+        changes.append(f"очки → {body.points}")
+
+    apply_char(target, is_npc, patch)
+
+    if not is_npc:
+        if "colony" in patch:
+            notify(session, "colony", "Смена колонии",
+                   f"Перемещение в барьер «{COLONY_NAMES.get(patch['colony'])}» подтверждено. "
+                   "Срок объявления обнулён.", target.id)
+        if "level" in patch:
+            notify(session, "level", "Изменение уровня",
+                   f"Уровень пересмотрен: {LEVEL_NAMES.get(patch['level'], patch['level'])}.", target.id)
+        if patch.get("status") == "dead":
+            target.death_reason = "Выбывание подтверждено распорядителем игры."
+            target.dead_migration = setting(session, "migration").get("number", 1)
+            notify(session, "death", "Выбытие из игры",
+                   "Статус участника изменён на «Погиб». Доступ приостановлен до следующей миграции.",
+                   target.id)
+        elif "status" in patch and before.get("status") == "dead":
+            target.death_reason = None
+            target.dead_migration = None
+
+    add_log(session, admin.email, "edit-participant",
+            f"{before.get('name', pid)}: {', '.join(changes) or 'без изменений'}.")
+    session.commit()
+    return {"ok": True}
+
+
+@router.post("/participants/{pid}/points")
+def change_points(pid: str, body: PointsIn, data=Depends(require_admin)):
+    admin, session = data
+    target, is_npc = find_participant(session, pid)
+    char = char_of(target, is_npc)
+    current = int(char.get("points", 0))
+
+    total = max(0, body.value) if body.value is not None else max(0, current + (body.delta or 0))
+    delta = total - current
+    apply_char(target, is_npc, {"points": total})
+
+    if not is_npc and delta:
+        kind = "points" if delta > 0 else "penalty"
+        title = "Начисление очков" if delta > 0 else "Списание очков"
+        verb = "Зачислено" if delta > 0 else "Снято"
+        notify(session, kind, title,
+               f"{verb} {abs(delta)} очков. Текущий счёт: {total}. Основание: {body.reason}.",
+               target.id)
+
+    add_log(session, admin.email, "points",
+            f"{char.get('name', pid)}: {'+' if delta >= 0 else ''}{delta} очков → {total}.")
+    session.commit()
+    return {"ok": True, "points": total}
+
+
+@router.post("/participants/{pid}/revive")
+def revive(pid: str, data=Depends(require_admin)):
+    admin, session = data
+    target, is_npc = find_participant(session, pid)
+    char = char_of(target, is_npc)
+
+    apply_char(target, is_npc, {"status": "active"})
+    if not is_npc:
+        target.death_reason = None
+        target.dead_migration = None
+        notify(session, "broadcast", "Возвращение в игру",
+               "Распорядитель вернул вас в Смертельную миграцию. Доступ восстановлен.", target.id)
+
+    add_log(session, admin.email, "revive", f"{char.get('name', pid)} возвращён в игру.")
+    session.commit()
+    return {"ok": True}
+
+
+@router.post("/participants/{pid}/grant")
+def grant_rule(pid: str, body: RuleGrant, data=Depends(require_admin)):
+    admin, session = data
+    target, is_npc = find_participant(session, pid)
+    rule = session.get(ShopRule, body.ruleId)
+    if not rule:
+        raise HTTPException(404, "Правило не найдено")
+
+    char = char_of(target, is_npc)
+
+    if is_npc:
+        target.rules = int(target.rules or 0) + 1
+    else:
+        owned = list(target.owned_rules or [])
+        if rule.id in owned:
+            raise HTTPException(409, "Правило уже выдано")
+        owned.append(rule.id)
+        target.owned_rules = owned
+
+        char["rules"] = int(char.get("rules", 0)) + 1
+        if not body.free:
+            char["points"] = max(0, int(char.get("points", 0)) - rule.cost)
+        target.character = char
+
+        notify(session, "purchase", "Правило установлено",
+               f"«{rule.title}» внесено в свод правил решением распорядителя.", target.id)
+
+    session.add(RuleHistory(
+        id=new_id("rh"), ts=now_ms(), type="add", title=rule.title, jp=rule.jp,
+        by=char.get("name", pid), colony=char.get("colony"), rule_id=rule.id,
+    ))
+    add_log(session, admin.email, "grant-rule", f"{char.get('name', pid)}: выдано «{rule.title}».")
+    session.commit()
+    return {"ok": True}
+
+
+@router.post("/participants/{pid}/revoke")
+def revoke_rule(pid: str, body: RuleGrant, data=Depends(require_admin)):
+    admin, session = data
+    target, is_npc = find_participant(session, pid)
+    rule = session.get(ShopRule, body.ruleId)
+    if is_npc or not rule:
+        raise HTTPException(400, "Отзыв доступен только у игроков")
+
+    owned = [r for r in (target.owned_rules or []) if r != rule.id]
+    target.owned_rules = owned
+
+    char = dict(target.character or {})
+    char["rules"] = max(0, int(char.get("rules", 0)) - 1)
+    target.character = char
+
+    session.add(RuleHistory(
+        id=new_id("rh"), ts=now_ms(), type="del", title=rule.title, jp=rule.jp,
+        by="Распорядитель", colony=char.get("colony"),
+    ))
+    notify(session, "ruleTaken", "Правило отозвано",
+           f"«{rule.title}» исключено из вашего свода правил распорядителем.", target.id)
+    add_log(session, admin.email, "revoke-rule",
+            f"{char.get('name', pid)}: отозвано «{rule.title}».", "warn")
+    session.commit()
+    return {"ok": True}
+
+
+@router.delete("/users/{uid}")
+def delete_user(uid: str, data=Depends(require_admin)):
+    admin, session = data
+    user = session.get(User, uid)
+    if not user:
+        raise HTTPException(404, "Аккаунт не найден")
+    if user.role == "admin":
+        raise HTTPException(400, "Учётную запись распорядителя удалить нельзя")
+
+    name = (user.character or {}).get("name", user.email)
+    session.delete(user)
+    add_log(session, admin.email, "delete-user", f"Аккаунт {name} удалён.", "danger")
+    session.commit()
+    return {"ok": True}
+
+
+@router.post("/mass")
+def mass_action(body: MassIn, data=Depends(require_admin)):
+    """Массовые действия по охвату: все, только живые или отдельная колония."""
+    admin, session = data
+    everyone = participants(session)
+
+    # Охват и действие проверяются строго: опечатка в охвате незаметно
+    # расширила бы «объявить выбывшими» с одной колонии на весь реестр.
+    names = {"add": "начисление", "sub": "списание", "kill": "выбывание", "revive": "возврат"}
+    if body.action not in names:
+        raise HTTPException(422, f"Неизвестное действие: {body.action}")
+
+    if body.scope == "alive":
+        targets = [p for p in everyone if p["status"] != "dead"]
+    elif body.scope.startswith("c:"):
+        check(body.scope[2:], COLONY_NAMES, "колония")
+        targets = [p for p in everyone if p["colony"] == body.scope[2:]]
+    elif body.scope == "all":
+        targets = everyone
+    else:
+        raise HTTPException(422, f"Неизвестный охват: {body.scope}")
+
+    migration_no = setting(session, "migration").get("number", 1)
+
+    for p in targets:
+        obj, is_npc = find_participant(session, p["id"])
+        char = char_of(obj, is_npc)
+        current = int(char.get("points", 0))
+
+        if body.action == "add":
+            total = current + body.amount
+            apply_char(obj, is_npc, {"points": total})
+            if not is_npc:
+                notify(session, "points", "Начисление очков",
+                       f"Зачислено {body.amount} очков. Текущий счёт: {total}. "
+                       "Основание: массовое начисление.", obj.id)
+
+        elif body.action == "sub":
+            total = max(0, current - body.amount)
+            apply_char(obj, is_npc, {"points": total})
+            if not is_npc:
+                notify(session, "penalty", "Списание очков",
+                       f"Снято {body.amount} очков. Текущий счёт: {total}. "
+                       "Основание: массовое списание.", obj.id)
+
+        elif body.action == "kill":
+            apply_char(obj, is_npc, {"status": "dead"})
+            if not is_npc:
+                obj.death_reason = "Выбывание подтверждено распорядителем игры."
+                obj.dead_migration = migration_no
+                notify(session, "death", "Выбытие из игры",
+                       "Статус участника изменён на «Погиб». "
+                       "Доступ приостановлен до следующей миграции.", obj.id)
+
+        elif body.action == "revive":
+            apply_char(obj, is_npc, {"status": "active"})
+            if not is_npc:
+                obj.death_reason = None
+                obj.dead_migration = None
+
+    add_log(session, admin.email, f"mass-{body.action}",
+            f"Массовое {names.get(body.action, body.action)} "
+            f"({body.amount if body.action in ('add', 'sub') else '—'}). "
+            f"Затронуто: {len(targets)}.",
+            "warn" if body.action in ("kill", "sub") else "info")
+    session.commit()
+    return {"ok": True, "affected": len(targets)}
+
+
+# ==================== Правила магазина ====================
+
+@router.post("/shop-rules")
+def create_rule(body: ShopRuleIn, data=Depends(require_admin)):
+    admin, session = data
+    rule = ShopRule(
+        id=new_id("r"), code=body.code, title=body.title, jp=body.jp, text=body.text,
+        cost=body.cost, cat=body.cat, enabled=body.enabled, sort=999,
+    )
+    session.add(rule)
+    notify(session, "rule", "Новое правило в игре", f"Добавлено правило: «{body.title}».", "all")
+    add_log(session, admin.email, "rule-create", f"Создано правило магазина «{body.title}».")
+    session.commit()
+    return {"ok": True, "id": rule.id}
+
+
+@router.patch("/shop-rules/{rid}")
+def update_rule(rid: str, body: ShopRuleIn, data=Depends(require_admin)):
+    admin, session = data
+    rule = session.get(ShopRule, rid)
+    if not rule:
+        raise HTTPException(404, "Правило не найдено")
+
+    for field in ("code", "title", "jp", "text", "cost", "cat", "enabled"):
+        setattr(rule, field, getattr(body, field))
+
+    add_log(session, admin.email, "rule-edit", f"Правило «{rule.title}» изменено.")
+    session.commit()
+    return {"ok": True}
+
+
+@router.delete("/shop-rules/{rid}")
+def delete_rule(rid: str, data=Depends(require_admin)):
+    admin, session = data
+    rule = session.get(ShopRule, rid)
+    if not rule:
+        raise HTTPException(404, "Правило не найдено")
+    title = rule.title
+    session.delete(rule)
+    add_log(session, admin.email, "rule-delete", f"Правило «{title}» удалено из магазина.", "warn")
+    session.commit()
+    return {"ok": True}
+
+
+# ==================== Уведомления и рассылка ====================
+
+@router.post("/notifications")
+def create_notice(body: NoticeIn, data=Depends(require_admin)):
+    admin, session = data
+    notify(session, body.type, body.title or "Сообщение системы", body.text, body.target)
+    add_log(session, admin.email, "notice", f"Уведомление «{body.title}» → {body.target}.")
+    session.commit()
+    return {"ok": True}
+
+
+@router.post("/broadcast")
+def broadcast(body: BroadcastIn, data=Depends(require_admin)):
+    admin, session = data
+    everyone = participants(session)
+
+    if body.scope == "all":
+        notify(session, "broadcast", body.title, body.text, "all")
+        count = len(everyone)
+    else:
+        if body.scope == "alive":
+            targets = [p for p in everyone if p["status"] != "dead" and not p.get("isNpc")]
+        elif body.scope.startswith("colony:"):
+            cid = check(body.scope.split(":", 1)[1], COLONY_NAMES, "колония")
+            targets = [p for p in everyone if p["colony"] == cid and not p.get("isNpc")]
+        else:
+            raise HTTPException(422, f"Неизвестный охват рассылки: {body.scope}")
+
+        for p in targets:
+            notify(session, "broadcast", body.title, body.text, p["id"])
+        count = len(targets)
+
+    add_log(session, admin.email, "broadcast", f"Рассылка «{body.title}» ({body.scope}).")
+    session.commit()
+    return {"ok": True, "affected": count}
+
+
+@router.post("/notifications/clear")
+def clear_notices(data=Depends(require_admin)):
+    admin, session = data
+    for n in session.scalars(select(Notification)).all():
+        session.delete(n)
+    add_log(session, admin.email, "db-clear-notices", "История уведомлений очищена.", "warn")
+    session.commit()
+    return {"ok": True}
+
+
+# ==================== Миграция ====================
+
+@router.post("/migration/start")
+def start_migration(body: MigrationIn, data=Depends(require_admin)):
+    admin, session = data
+    mig = setting(session, "migration")
+    number = int(mig.get("number", 0)) + 1
+
+    save_setting(session, "migration", {
+        "number": number, "active": True, "startedAt": now_ms(),
+        "endedAt": None, "note": body.note,
+    })
+
+    for u in session.scalars(select(User).where(User.state == "approved")).all():
+        if not u.character:
+            continue
+        char = dict(u.character)
+        char["status"] = "out" if u.role == "admin" else "active"
+        u.character = char
+        u.death_reason = None
+        u.dead_migration = None
+
+    for n in session.scalars(select(Npc).where(Npc.status == "frozen")).all():
+        n.status = "active"
+
+    notify(session, "migStart", f"Миграция №{number} начата",
+           "Барьеры развёрнуты. Все участники обязаны объявить о начале игры в течение 19 дней.", "all")
+    add_log(session, admin.email, "migration-start", f"Миграция №{number} начата.")
+    session.commit()
+    return {"ok": True, "number": number}
+
+
+@router.post("/migration/end")
+def end_migration(body: MigrationIn, data=Depends(require_admin)):
+    admin, session = data
+    mig = setting(session, "migration")
+    number = int(mig.get("number", 1))
+
+    mig.update({"active": False, "endedAt": now_ms(), "note": body.note or mig.get("note", "")})
+    save_setting(session, "migration", mig)
+
+    for u in session.scalars(select(User).where(User.state == "approved")).all():
+        if u.role == "admin" or not u.character:
+            continue
+        char = dict(u.character)
+        char["status"] = "dead"
+        u.character = char
+        u.dead_migration = number
+        u.death_reason = f"{body.note} Миграция №{number} завершена." if body.note else ""
+
+    notify(session, "migEnd", f"Миграция №{number} завершена",
+           "Барьеры свёрнуты. Все участники, находившиеся внутри, признаны выбывшими.", "all")
+    add_log(session, admin.email, "migration-end", f"Миграция №{number} завершена. {body.note}", "danger")
+    session.commit()
+    return {"ok": True}
+
+
+@router.patch("/migration")
+def update_migration(body: MigrationIn, data=Depends(require_admin)):
+    admin, session = data
+    mig = setting(session, "migration")
+    mig["note"] = body.note
+    save_setting(session, "migration", mig)
+    add_log(session, admin.email, "migration-note", f"Распоряжение обновлено: {body.note}")
+    session.commit()
+    return {"ok": True}
+
+
+# ==================== Безопасность и обслуживание ====================
+
+@router.post("/security")
+def update_security(
+    body: SecurityIn,
+    data=Depends(require_admin),
+    authorization: Optional[str] = Header(default=None),
+):
+    admin, session = data
+    current_token = (authorization or "")[7:].strip()
+
+    if body.code:
+        if len(body.code) < 4:
+            raise HTTPException(400, "Код короче четырёх символов")
+        security = setting(session, "security")
+        security.update({"codeHash": hash_secret(body.code), "codeChanged": True, "updatedAt": now_ms()})
+        save_setting(session, "security", security)
+        add_log(session, admin.email, "code-change", "Секретный код администрации изменён.", "warn")
+
+    if body.password:
+        if len(body.password) < 6:
+            raise HTTPException(400, "Пароль короче шести символов")
+        admin_user = session.get(User, admin.id)
+        admin_user.pass_hash = hash_secret(body.password)
+
+        # Пароль меняют в том числе тогда, когда в панель кто-то зашёл.
+        # Прежние входы после этого должны перестать работать — иначе чужая
+        # вкладка останется открытой и смена пароля ничего не даст.
+        # Текущий вход сохраняется, чтобы распорядителя не выбросило.
+        закрыто = 0
+        for row in session.scalars(select(UserSession).where(UserSession.user_id == admin.id)).all():
+            if row.token != current_token:
+                session.delete(row)
+                закрыто += 1
+
+        add_log(session, admin.email, "pass-change",
+                f"Пароль распорядителя изменён. Прежних входов закрыто: {закрыто}.", "warn")
+
+    session.commit()
+    return {"ok": True}
+
+
+@router.post("/logs/clear")
+def clear_logs(data=Depends(require_admin)):
+    admin, session = data
+    for entry in session.scalars(select(LogEntry)).all():
+        session.delete(entry)
+    session.commit()
+    add_log(session, admin.email, "db-clear-logs", "Журнал очищен.", "warn")
+    session.commit()
+    return {"ok": True}
+
+
+@router.post("/npcs/load")
+def load_demo(data=Depends(require_admin)):
+    admin, session = data
+    if session.scalar(select(Npc).limit(1)):
+        raise HTTPException(409, "Демо-реестр уже загружен")
+
+    for i, (name, jp, level, points, rules, colony, status) in enumerate(DEMO_ROSTER):
+        session.add(Npc(
+            id=f"n-{i}", name=name, name_jp=jp, level=level,
+            points=points, rules=rules, colony=colony, status=status,
+        ))
+    add_log(session, admin.email, "db-load-npcs", f"Загружено демо-записей: {len(DEMO_ROSTER)}.")
+    session.commit()
+    return {"ok": True, "count": len(DEMO_ROSTER)}
+
+
+@router.post("/npcs/clear")
+def clear_demo(data=Depends(require_admin)):
+    admin, session = data
+    rows = session.scalars(select(Npc)).all()
+    for n in rows:
+        session.delete(n)
+    add_log(session, admin.email, "db-clear-npcs", f"Удалено демо-записей: {len(rows)}.", "warn")
+    session.commit()
+    return {"ok": True, "count": len(rows)}
+
+
+@router.get("/export")
+def export_db(data=Depends(require_admin)):
+    """Выгрузка состояния для резервной копии."""
+    admin, session = data
+    return build_state(session, admin)
+
+
+@router.post("/reset")
+def reset_db(data=Depends(require_admin)):
+    """
+    Полный сброс игры: аккаунты участников, реестр, уведомления,
+    журнал и история правил удаляются. Учётная запись распорядителя,
+    свод правил и магазин остаются.
+    """
+    admin, session = data
+
+    for model in (Npc, Notification, RuleHistory, LogEntry):
+        for row in session.scalars(select(model)).all():
+            session.delete(row)
+
+    for user in session.scalars(select(User).where(User.role != "admin")).all():
+        session.delete(user)
+
+    save_setting(session, "migration", {
+        "number": 1, "active": True, "startedAt": now_ms(), "endedAt": None,
+        "note": "Система сброшена. Барьеры развёрнуты заново.",
+    })
+
+    session.add(RuleHistory(
+        id=new_id("rh"), ts=now_ms(), type="base",
+        title="Свод базовых правил утверждён", jp="基本規則制定",
+        by="Распорядитель игры", colony=None,
+    ))
+    add_log(session, admin.email, "db-reset", "Система сброшена к начальному состоянию.", "danger")
+    session.commit()
+    return {"ok": True}

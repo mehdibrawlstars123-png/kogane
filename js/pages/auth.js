@@ -2,21 +2,27 @@
  * Страница входа: загрузка системы → вход/регистрация → подключение к барьеру.
  */
 
-import { $, $$, on } from '../core/dom.js?v=9';
-import { store, DEFAULT_ADMIN_CODE } from '../core/store.js?v=9';
-import { auth } from '../core/auth.js?v=9';
-import { crt } from '../core/crt.js?v=9';
-import { audio } from '../core/audio.js?v=9';
-import { kogane } from '../core/sprites.js?v=9';
-import { typeLines, type, wait } from '../core/typewriter.js?v=9';
-import { wireSounds, volumeControl } from '../core/ui.js?v=9';
-import { connectSequence } from '../modules/connect.js?v=9';
-import { storage } from '../utils/storage.js?v=9';
-import { trace } from '../core/trace.js?v=9';
+import { $, $$, on } from '../core/dom.js?v=10';
+import { store } from '../core/store.js?v=10';
+import { auth } from '../core/auth.js?v=10';
+import { crt } from '../core/crt.js?v=10';
+import { audio } from '../core/audio.js?v=10';
+import { kogane } from '../core/sprites.js?v=10';
+import { typeLines, type, wait } from '../core/typewriter.js?v=10';
+import { wireSounds, volumeControl } from '../core/ui.js?v=10';
+import { connectSequence } from '../modules/connect.js?v=10';
+import { storage } from '../utils/storage.js?v=10';
+import { trace } from '../core/trace.js?v=10';
 
-store.init();
 crt.init();
 wireSounds();
+
+// Состояние приходит с сервера
+await store.init().catch(() => {});
+
+// Код первого входа задан на сервере (переменная окружения ADMIN_CODE).
+// Подсказка показывается, только пока код не сменили.
+const FIRST_RUN_CODE = 'KOGANE-19';
 
 /* ---------------- Загрузочная последовательность ---------------- */
 
@@ -82,7 +88,7 @@ function paintBrand() {
   // Подсказка о первом входе — только пока код не сменили
   if (!store.security().codeChanged) {
     $('#admHint').innerHTML = 'Первый вход: <b>admin@kogane.jp</b> / пароль <b>kogane</b> / код '
-      + `<b>${DEFAULT_ADMIN_CODE}</b>.<br />Смените пароль и код в панели: «База системы» → «Безопасность». `
+      + `<b>${FIRST_RUN_CODE}</b>.<br />Смените пароль и код в панели: «База системы» → «Безопасность». `
       + 'Эта подсказка исчезнет после смены кода.';
   }
 }
@@ -176,13 +182,6 @@ on($('[data-rnext="2"]'), 'click', () => {
     setMsg('Проверьте адрес почты', 'error');
     return;
   }
-  if (store.userByEmail(email)) {
-    fieldError(form, 'email', 'Этот адрес уже зарегистрирован');
-    audio.err();
-    setMsg('Такой участник уже есть — войдите на вкладке «Вход»', 'error');
-    return;
-  }
-
   setMsg('');
   audio.click();
   regStep(2);
@@ -212,7 +211,7 @@ on($('#loginForm'), 'submit', async (e) => {
   trace('нажат «Подключиться»', email);
 
   try {
-    const user = auth.login({ email, password });
+    const user = await auth.login({ email, password });
     setMsg('Идентификация принята. Установка связи...', 'ok');
     audio.ok();
     await wait(420);
@@ -256,7 +255,7 @@ on($('#registerForm'), 'submit', async (e) => {
   trace('нажат «Далее → анкета»', email);
 
   try {
-    const user = auth.register({ email, password, passwordConfirm });
+    const user = await auth.register({ email, password, passwordConfirm });
     $$('.regstep').forEach((s) => s.classList.add('is-done'));
     setMsg('Аккаунт создан. Открываем анкету персонажа...', 'ok');
     audio.ok();
@@ -295,7 +294,7 @@ on($('#adminForm'), 'submit', async (e) => {
   trace('нажат «Открыть панель»', email);
 
   try {
-    const user = auth.loginAdmin({ email, password, code });
+    const user = await auth.loginAdmin({ email, password, code });
     setMsg('Код принят. Полномочия распорядителя подтверждены.', 'ok');
     audio.ok();
     await wait(420);

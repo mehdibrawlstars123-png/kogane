@@ -3,33 +3,40 @@
  * Роутинг по hash, синхронизация с базой, реакция на действия админа.
  */
 
-import { $, $$, on } from '../core/dom.js?v=9';
-import { store } from '../core/store.js?v=9';
-import { auth } from '../core/auth.js?v=9';
-import { crt } from '../core/crt.js?v=9';
-import { audio } from '../core/audio.js?v=9';
-import { bus, EV } from '../core/bus.js?v=9';
-import { wireSounds, headTools, toast } from '../core/ui.js?v=9';
-import { pts, esc } from '../core/format.js?v=9';
-import { colonyById } from '../data/labels.js?v=9';
-import { checkDeath, hideDeathScreen } from '../modules/death.js?v=9';
-import { shownToasts } from '../core/notify.js?v=9';
+import { $, $$, on } from '../core/dom.js?v=10';
+import { store } from '../core/store.js?v=10';
+import { auth } from '../core/auth.js?v=10';
+import { crt } from '../core/crt.js?v=10';
+import { audio } from '../core/audio.js?v=10';
+import { bus, EV } from '../core/bus.js?v=10';
+import { wireSounds, headTools, toast } from '../core/ui.js?v=10';
+import { pts, esc } from '../core/format.js?v=10';
+import { colonyById } from '../data/labels.js?v=10';
+import { checkDeath, hideDeathScreen } from '../modules/death.js?v=10';
+import { shownToasts } from '../core/notify.js?v=10';
 
-import { home } from '../sections/home.js?v=9';
-import { profile } from '../sections/profile.js?v=9';
-import { roster } from '../sections/roster.js?v=9';
-import { search } from '../sections/search.js?v=9';
-import { shop } from '../sections/shop.js?v=9';
-import { rules } from '../sections/rules.js?v=9';
-import { notices } from '../sections/notices.js?v=9';
-import { adminGate } from '../sections/admin-gate.js?v=9';
+import { home } from '../sections/home.js?v=10';
+import { profile } from '../sections/profile.js?v=10';
+import { roster } from '../sections/roster.js?v=10';
+import { search } from '../sections/search.js?v=10';
+import { shop } from '../sections/shop.js?v=10';
+import { rules } from '../sections/rules.js?v=10';
+import { notices } from '../sections/notices.js?v=10';
+import { adminGate } from '../sections/admin-gate.js?v=10';
 
-store.init();
 crt.init();
 wireSounds();
 
+// Состояние приходит с сервера, поэтому загрузка ожидается до отрисовки
+await store.init();
+store.startPolling(4000);
+
 let user = auth.guard({ need: 'approved' });
 if (!user) throw new Error('нет доступа');
+
+// Страница закреплена за тем, кто её открыл. Если в браузере войдут под другим
+// лицом, экран участника не должен молча стать чужим — уходим на вход.
+const SESSION_ID = user.id;
 
 const SECTIONS = { home, profile, roster, search, shop, rules, notices, admin: adminGate };
 let currentView = (location.hash.replace('#', '') || 'home');
@@ -37,8 +44,31 @@ if (!SECTIONS[currentView]) currentView = 'home';
 
 /* ---------------- Контекст участника ---------------- */
 
+/**
+ * Сессия оборвалась: аккаунт удалён распорядителем, срок токена вышел
+ * или в этом браузере вошли под другим лицом. Уводим на экран входа один раз —
+ * иначе опрос сервера будет спотыкаться о пустого участника каждые две секунды.
+ */
+let released = false;
+function release() {
+  if (released) return;
+  released = true;
+  store.stopPolling();
+  window.location.replace('../index.html');
+}
+
 function me() {
-  user = store.userById(user.id);
+  const fresh = store.userById(SESSION_ID);
+  if (!fresh) {
+    release();
+    // Пустой контекст на один такт: страница уже уходит на экран входа
+    return {
+      id: user.id, name: user.email, nameJp: '', level: 'g4',
+      points: 0, rules: 0, colony: 'tokyo1', status: 'active',
+    };
+  }
+
+  user = fresh;
   const c = user.character || {};
   return {
     id: user.id,
@@ -73,6 +103,16 @@ function paintHead() {
     : `天元 // Миграция №${mig.number} завершена. Барьеры свёрнуты.`;
 }
 
+/* Состояние, с которым сверяется наблюдатель изменений */
+let lastState = {
+  points: me().points,
+  colony: me().colony,
+  level: me().level,
+  status: me().status,
+  noticeTs: store.notifications(user.id)[0]?.ts || 0,
+  migration: store.migration().active,
+};
+
 /* ---------------- Рендер раздела ---------------- */
 
 function renderView(name, { announce = true } = {}) {
@@ -91,7 +131,7 @@ function renderView(name, { announce = true } = {}) {
   const snapshot = me();
 
   // Открытие раздела уведомлений считается прочтением
-  if (name === 'notices') store.markRead(user.id);
+  if (name === 'notices') store.markRead().catch(() => {});
 
   const root = $(`#view-${name}`);
   section.render(root, { user, me: snapshot, refresh });
@@ -103,6 +143,11 @@ function renderView(name, { announce = true } = {}) {
 }
 
 function refresh() {
+  // Уведомления, порождённые действием самого участника, уже показаны
+  // ему тостом на месте — наблюдатель не должен всплывать ими повторно.
+  const latest = store.notifications(user.id)[0];
+  if (latest && lastState) lastState.noticeTs = Math.max(lastState.noticeTs, latest.ts);
+
   paintHead();
   renderView(currentView, { announce: false });
 }
@@ -145,7 +190,7 @@ on(document, 'keydown', (e) => {
 /* ---------------- Инструменты в шапке ---------------- */
 
 $('#headTools').append(headTools({
-  onLogout: () => { auth.logout(); crt.powerOff('../index.html'); },
+  onLogout: async () => { await auth.logout(); crt.powerOff('../index.html'); },
 }));
 
 /* ---------------- Часы ---------------- */
@@ -157,18 +202,9 @@ setInterval(tickClock, 1000);
 
 /* ---------------- Реакция на изменения системы ---------------- */
 
-let lastState = {
-  points: me().points,
-  colony: me().colony,
-  level: me().level,
-  status: me().status,
-  noticeTs: store.notifications(user.id)[0]?.ts || 0,
-  migration: store.migration().active,
-};
-
 function watch() {
-  const fresh = store.userById(user.id);
-  if (!fresh) { auth.logout(); location.replace('../index.html'); return; }
+  const fresh = store.auth();
+  if (!fresh || fresh.id !== SESSION_ID) { release(); return; }
   user = fresh;
 
   const m = me();
@@ -246,7 +282,7 @@ setInterval(watch, 2000);
 
 // Игрок уже выбыл — сразу финальный экран
 if (checkDeath(user, { silentIfDead: true })) {
-  store.log(user.email, 'session', 'Вход заблокирован: участник выбыл.');
+  // Участник выбыл — разделы не отрисовываем, показан только экран выбывания
 } else {
   // Непрочитанные не сбрасываем при входе — счётчик в меню должен показать,
   // что происходило, пока участник был отключён.

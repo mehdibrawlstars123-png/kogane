@@ -2,15 +2,15 @@
  * Админ: очередь анкет — одобрение и отклонение.
  */
 
-import { $, $$, on } from '../core/dom.js?v=9';
-import { store } from '../core/store.js?v=9';
-import { esc, dt, ago } from '../core/format.js?v=9';
-import { modal, toast } from '../core/ui.js?v=9';
-import { notify } from '../core/notify.js?v=9';
-import { participantIcon } from '../core/sprites.js?v=9';
-import { applicationBlock } from '../sections/shared.js?v=9';
-import { colonyById, levelById, levelOptions, COLONIES } from '../data/labels.js?v=9';
-import { crt } from '../core/crt.js?v=9';
+import { $, $$, on } from '../core/dom.js?v=10';
+import { store } from '../core/store.js?v=10';
+import { esc, dt, ago } from '../core/format.js?v=10';
+import { modal, toast } from '../core/ui.js?v=10';
+import { notify } from '../core/notify.js?v=10';
+import { participantIcon } from '../core/sprites.js?v=10';
+import { applicationBlock } from '../sections/shared.js?v=10';
+import { colonyById, levelById, levelOptions, COLONIES } from '../data/labels.js?v=10';
+import { crt } from '../core/crt.js?v=10';
 
 let tab = 'applied';
 
@@ -158,34 +158,18 @@ async function approve(userId, { admin, refresh }) {
       <button class="btn btn--sm btn--primary" type="button" id="apGo">Внести в реестр</button>`,
   });
 
-  on(el.querySelector('#apGo'), 'click', () => {
+  on(el.querySelector('#apGo'), 'click', async () => {
     const level = el.querySelector('#apLevel').value;
     const colony = el.querySelector('#apColony').value;
     const points = Math.max(0, Number(el.querySelector('#apPoints').value) || 0);
 
-    store.commit((d) => {
-      const user = d.users.find((x) => x.id === userId);
-      user.state = 'approved';
-      user.approvedAt = Date.now();
-      user.rejectReason = null;
-      user.character = {
-        name: a.name,
-        nameJp: a.nameJp || '',
-        roblox: a.roblox || '',
-        discord: a.discord || '',
-        level,
-        points,
-        rules: 0,
-        colony,
-        status: 'active',
-      };
-    });
+    try {
+      await store.approve(userId, { level, colony, points });
+    } catch (err) {
+      toast.err('Не удалось одобрить', err.message);
+      return;
+    }
 
-    notify.emit('approved', {
-      name: a.name, colony, actor: admin.email,
-    }, { target: userId, silent: true });
-
-    store.log(admin.email, 'approve', `Анкета «${a.name}» одобрена. Колония: ${colonyById(colony).ru}.`);
     modal.close();
     toast.ok('Анкета одобрена', `${a.name} внесён в реестр участников.`);
     refresh();
@@ -205,14 +189,12 @@ async function reject(userId, { admin, refresh }) {
   });
   if (reason === null) return;
 
-  store.commit((d) => {
-    const user = d.users.find((x) => x.id === userId);
-    user.state = 'rejected';
-    user.rejectReason = reason;
-  });
-
-  notify.emit('rejected', { reason, actor: admin.email }, { target: userId, silent: true });
-  store.log(admin.email, 'reject', `Анкета «${u.application?.name}» отклонена. ${reason}`, 'warn');
+  try {
+    await store.reject(userId, reason);
+  } catch (err) {
+    toast.err('Не удалось отклонить', err.message);
+    return;
+  }
 
   crt.tear($('.screen'));
   toast.show({ type: 'rejected', title: 'Анкета отклонена', text: u.application?.name || '', alert: true });

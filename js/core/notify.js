@@ -3,9 +3,8 @@
  * Каждое событие пишется в историю уведомлений, в журнал и показывается тостом.
  */
 
-import { store } from './store.js?v=9';
-import { toast } from './ui.js?v=9';
-import { NOTICE_TYPES, colonyById, levelById } from '../data/labels.js?v=9';
+import { toast } from './ui.js?v=10';
+import { NOTICE_TYPES, colonyById, levelById } from '../data/labels.js?v=10';
 
 /** Текстовые шаблоны событий Коганэ */
 const TPL = {
@@ -70,41 +69,27 @@ export const shownToasts = new Set();
 
 export const notify = {
   /**
-   * Создаёт уведомление.
+   * Показывает всплывающее уведомление.
+   * Запись в историю делает сервер — здесь только отображение.
+   *
    * @param {string} type  ключ из NOTICE_TYPES
    * @param {object} payload данные для шаблона
-   * @param {object} opts  { target: 'all'|userId, silent: не показывать тост }
-   *
-   * payload.title участвует в шаблоне (например, название правила).
-   * Чтобы заменить сам заголовок уведомления, передайте overrideTitle.
    */
-  emit(type, payload = {}, { target = 'all', silent = false } = {}) {
-    const meta = NOTICE_TYPES[type] || NOTICE_TYPES.broadcast;
+  emit(type, payload = {}, { silent = false } = {}) {
     const tpl = (TPL[type] || TPL.broadcast)(payload);
-
-    const item = store.addNotification({
-      type,
-      title: payload.overrideTitle || tpl.title,
-      text: payload.text || tpl.text,
-      target,
-    });
-
-    store.log(payload.actor || 'КОГАНЭ', type, `${item.title}${item.text ? ` — ${item.text}` : ''}`);
+    const title = payload.overrideTitle || tpl.title;
+    const text = payload.text || tpl.text;
 
     if (!silent) {
       toast.show({
         type,
-        title: item.title,
-        text: item.text,
+        title,
+        text,
         alert: ['rejected', 'penalty', 'migEnd', 'death', 'ruleTaken'].includes(type),
       });
     }
 
-    // Тихие уведомления тоже помечаем: адресат увидит их в истории,
-    // а наблюдатель не должен всплывать ими повторно у автора события.
-    shownToasts.add(item.id);
-
-    return item;
+    return { type, title, text };
   },
 
   meta(type) { return NOTICE_TYPES[type] || NOTICE_TYPES.broadcast; },

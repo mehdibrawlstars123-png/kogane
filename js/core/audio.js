@@ -8,7 +8,7 @@
  * Громкость регулируется ползунком и сохраняется между заходами.
  */
 
-import { storage } from '../utils/storage.js?v=9';
+import { storage } from '../utils/storage.js?v=10';
 
 const DEFAULT_VOLUME = 0.55;
 

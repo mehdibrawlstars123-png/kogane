@@ -2,12 +2,12 @@
  * Админ: правила магазина, создание уведомлений, рассылка.
  */
 
-import { $, $$, on } from '../core/dom.js?v=9';
-import { store } from '../core/store.js?v=9';
-import { esc, dt } from '../core/format.js?v=9';
-import { modal, toast } from '../core/ui.js?v=9';
-import { notify } from '../core/notify.js?v=9';
-import { NOTICE_TYPES, COLONIES } from '../data/labels.js?v=9';
+import { $, $$, on } from '../core/dom.js?v=10';
+import { store } from '../core/store.js?v=10';
+import { esc, dt } from '../core/format.js?v=10';
+import { modal, toast } from '../core/ui.js?v=10';
+import { notify } from '../core/notify.js?v=10';
+import { NOTICE_TYPES, COLONIES } from '../data/labels.js?v=10';
 
 /* ==================== Правила магазина ==================== */
 
@@ -70,10 +70,11 @@ export const rulesAdmin = {
     on($('#rNew', root), 'click', () => editRule(null, ctx, refresh));
     $$('[data-edit]', root).forEach((b) => on(b, 'click', () => editRule(b.dataset.edit, ctx, refresh)));
 
-    $$('[data-toggle]', root).forEach((b) => on(b, 'click', () => {
+    $$('[data-toggle]', root).forEach((b) => on(b, 'click', async () => {
       const r = store.shopRules().find((x) => x.id === b.dataset.toggle);
-      store.updateShopRule(r.id, { enabled: r.enabled === false });
-      store.log(ctx.admin.email, 'rule-toggle', `Правило «${r.title}» ${r.enabled === false ? 'возвращено в продажу' : 'скрыто'}.`);
+      try {
+        await store.updateShopRule(r.id, { enabled: r.enabled === false });
+      } catch (err) { toast.err('Не сохранено', err.message); return; }
       refresh();
     }));
 
@@ -85,8 +86,9 @@ export const rulesAdmin = {
         okText: 'Удалить',
       });
       if (!ok) return;
-      store.removeShopRule(r.id);
-      store.log(ctx.admin.email, 'rule-delete', `Правило «${r.title}» удалено из магазина.`, 'warn');
+      try {
+        await store.removeShopRule(r.id);
+      } catch (err) { toast.err('Не удалено', err.message); return; }
       toast.show({ type: 'ruleTaken', title: 'Правило удалено', text: r.title, alert: true });
       refresh();
     }));
@@ -135,7 +137,7 @@ function editRule(id, ctx, refresh) {
       <button class="btn btn--sm btn--primary" type="button" id="fSave">${r ? 'Сохранить' : 'Создать'}</button>`,
   });
 
-  on(el.querySelector('#fSave'), 'click', () => {
+  on(el.querySelector('#fSave'), 'click', async () => {
     const data = {
       code: el.querySelector('#fCode').value.trim(),
       cost: Math.max(0, Number(el.querySelector('#fCost').value) || 0),
@@ -150,14 +152,10 @@ function editRule(id, ctx, refresh) {
       return;
     }
 
-    if (r) {
-      store.updateShopRule(r.id, data);
-      store.log(ctx.admin.email, 'rule-edit', `Правило «${data.title}» изменено.`);
-    } else {
-      store.addShopRule(data);
-      store.log(ctx.admin.email, 'rule-create', `Создано правило магазина «${data.title}».`);
-      notify.emit('rule', { title: data.title, by: null, actor: ctx.admin.email }, { target: 'all', silent: true });
-    }
+    try {
+      if (r) await store.updateShopRule(r.id, data);
+      else await store.addShopRule(data);
+    } catch (err) { toast.err('Не сохранено', err.message); return; }
 
     modal.close();
     toast.ok(r ? 'Правило обновлено' : 'Правило создано', data.title);
@@ -235,7 +233,7 @@ export const noticesAdmin = {
         </div>
       </div>`;
 
-    on($('#nSend', root), 'click', () => {
+    on($('#nSend', root), 'click', async () => {
       const type = $('#nType', root).value;
       const target = $('#nTarget', root).value;
       const title = $('#nTitle', root).value.trim();
@@ -243,9 +241,10 @@ export const noticesAdmin = {
 
       if (!text && !title) { toast.err('Не отправлено', 'Заполните заголовок или текст.'); return; }
 
-      notify.emit(type, {
-        overrideTitle: title || undefined, title, text, actor: ctx.admin.email,
-      }, { target, silent: false });
+      try {
+        await store.addNotification({ type, title, text, target });
+      } catch (err) { toast.err('Не отправлено', err.message); return; }
+
       $('#nTitle', root).value = '';
       $('#nText', root).value = '';
       toast.ok('Уведомление отправлено', target === 'all' ? 'Всем участникам' : 'Адресно');
@@ -327,7 +326,7 @@ export const broadcastAdmin = {
       $('#bText', root).value = text;
     }));
 
-    const send = (testOnly = false) => {
+    const send = async (testOnly = false) => {
       const scope = $('#bScope', root).value;
       const title = $('#bTitle', root).value.trim();
       const text = $('#bText', root).value.trim();
@@ -339,22 +338,14 @@ export const broadcastAdmin = {
         return;
       }
 
-      let targets = store.users().filter((u) => u.role !== 'admin' && u.state === 'approved');
-      if (scope === 'alive') targets = targets.filter((u) => u.character?.status !== 'dead');
-      if (scope.startsWith('colony:')) {
-        const cid = scope.slice(7);
-        targets = targets.filter((u) => u.character?.colony === cid);
+      try {
+        const res = await store.broadcast({ scope, title, text });
+        toast.ok('Рассылка выполнена', `Получателей: ${res.affected}`);
+      } catch (err) {
+        toast.err('Рассылка не выполнена', err.message);
+        return;
       }
 
-      if (scope === 'all') {
-        notify.emit('broadcast', { title, text, actor: ctx.admin.email }, { target: 'all' });
-      } else {
-        targets.forEach((u) => notify.emit('broadcast', { title, text, actor: ctx.admin.email },
-          { target: u.id, silent: true }));
-        toast.ok('Рассылка выполнена', `Получателей: ${targets.length}`);
-      }
-
-      store.log(ctx.admin.email, 'broadcast', `Рассылка «${title}» (${scope}).`);
       $('#bText', root).value = '';
     };
 

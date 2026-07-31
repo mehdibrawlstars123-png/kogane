@@ -2,11 +2,11 @@
  * Раздел «История уведомлений».
  */
 
-import { $$, on } from '../core/dom.js?v=9';
-import { store } from '../core/store.js?v=9';
-import { esc, dt, ago, pts } from '../core/format.js?v=9';
-import { NOTICE_TYPES, JP } from '../data/labels.js?v=9';
-import { sprite } from '../core/sprites.js?v=9';
+import { $$, on } from '../core/dom.js?v=10';
+import { store } from '../core/store.js?v=10';
+import { esc, dt, ago, pts } from '../core/format.js?v=10';
+import { NOTICE_TYPES, JP } from '../data/labels.js?v=10';
+import { sprite } from '../core/sprites.js?v=10';
 
 let kind = 'all';
 
@@ -63,8 +63,8 @@ export const notices = {
 
     const readAll = root.querySelector('#readAll');
     if (readAll) {
-      on(readAll, 'click', () => {
-        store.markRead(user.id);
+      on(readAll, 'click', async () => {
+        await store.markRead();
         refresh?.();
       });
     }

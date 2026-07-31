@@ -1,459 +1,313 @@
 /**
  * Store — состояние системы Коганэ.
  *
- * Бэкенда нет, поэтому вся «база» живёт в localStorage:
- * пользователи, анкеты, участники, правила, уведомления, журнал, миграция.
- * Изменения синхронизируются между вкладками через событие storage —
- * действия администратора видны игроку в другой вкладке сразу.
+ * Данные живут в PostgreSQL на сервере. Здесь хранится только снимок,
+ * полученный запросом: чтение из него мгновенное и синхронное — весь
+ * интерфейс работает как раньше. Любое изменение уходит на сервер,
+ * после чего снимок обновляется.
+ *
+ * Снимок периодически перечитывается, поэтому действия распорядителя
+ * доходят до участника сами — с любого устройства.
  */
 
-import { bus, EV } from './bus.js?v=9';
-import { BASE_RULES, SHOP_RULES, DEMO_ROSTER, RULE_HISTORY_SEED } from '../data/seed.js?v=9';
+import { bus, EV } from './bus.js?v=10';
+import { api } from './api.js?v=10';
 
-const KEY = 'kogane:db:v1';
+const EMPTY = {
+  auth: null,
+  migration: { number: 1, active: true, startedAt: Date.now(), endedAt: null, note: '' },
+  security: { codeChanged: true },
+  baseRules: [],
+  shopRules: [],
+  ruleHistory: [],
+  participants: [],
+  notifications: [],
+  users: [],
+  logs: [],
+};
 
-const now = () => Date.now();
-const uid = (p = 'x') => `${p}-${now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
-
-/** Пароль хешируется, чтобы не лежать в открытом виде.
- *  Это не защита: вся «база» на клиенте. Для реальной системы нужен сервер. */
-function hash(str) {
-  let h1 = 0x811c9dc5;
-  let h2 = 0x1000193;
-  for (let i = 0; i < str.length; i += 1) {
-    const c = str.charCodeAt(i);
-    h1 = ((h1 ^ c) * 0x01000193) >>> 0;
-    h2 = ((h2 + c * (i + 7)) * 0x85ebca6b) >>> 0;
-  }
-  return `${h1.toString(16)}${h2.toString(16)}`;
-}
-
-/** Код по умолчанию. Меняется в админке, хранится только в виде хеша. */
-export const DEFAULT_ADMIN_CODE = 'KOGANE-19';
-
-function seedDb() {
-  const t = now();
-
-  return {
-    version: 1,
-    createdAt: t,
-
-    security: {
-      codeHash: hash(DEFAULT_ADMIN_CODE),
-      codeChanged: false,
-      updatedAt: t,
-    },
-
-    migration: {
-      number: 1,
-      active: true,
-      startedAt: t,
-      endedAt: null,
-      note: 'Первая миграция. Барьеры развёрнуты над десятью колониями.',
-    },
-
-    users: [
-      {
-        id: 'u-admin',
-        email: 'admin@kogane.jp',
-        pass: hash('kogane'),
-        role: 'admin',
-        state: 'approved',
-        createdAt: t,
-        character: {
-          name: 'Распорядитель игры',
-          nameJp: '主催者',
-          level: 'gs',
-          points: 0,
-          rules: 0,
-          colony: 'tokyo1',
-          status: 'out',
-        },
-        application: null,
-        ownedRules: [],
-        notifications: [],
-      },
-    ],
-
-    // Реестр стартует пустым: участники появляются только через
-    // регистрацию и одобрение анкеты распорядителем.
-    npcs: [],
-
-    baseRules: BASE_RULES,
-    shopRules: SHOP_RULES.map((r) => ({ ...r, enabled: true })),
-
-    ruleHistory: RULE_HISTORY_SEED.map((r, i) => ({
-      id: `rh-${i}`,
-      ts: t - (RULE_HISTORY_SEED.length - i) * 3600e3 * 7,
-      ...r,
-    })),
-
-    notifications: [
-      {
-        id: 'nt-0',
-        ts: t,
-        type: 'migStart',
-        title: 'Первая миграция начата',
-        text: 'Барьеры развёрнуты. Все участники обязаны объявить о начале игры в течение 19 дней.',
-        target: 'all',
-        read: [],
-      },
-    ],
-
-    logs: [
-      { id: 'lg-0', ts: t, actor: 'СИСТЕМА', action: 'init', text: 'База системы Коганэ развёрнута.' },
-    ],
-  };
-}
-
-/* ---------------------------------------------------------- */
-
-let db = null;
-
-function read() {
-  try {
-    const raw = localStorage.getItem(KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-}
-
-function write() {
-  try {
-    localStorage.setItem(KEY, JSON.stringify(db));
-    return true;
-  } catch (e) {
-    console.error('[store] не удалось сохранить состояние', e);
-    return false;
-  }
-}
+let db = { ...EMPTY };
+let poller = null;
+let signature = '';   // отпечаток последнего снимка — чтобы не перерисовывать зря
+let visibilityWired = false;
 
 export const store = {
-  hash,
-  uid,
+  /* ---------------- Загрузка и синхронизация ---------------- */
 
-  init() {
-    db = read();
-    if (!db || db.version !== 1) {
-      db = seedDb();
-      write();
-    }
-
-    // Достройка полей, появившихся после создания базы
-    if (!db.security) {
-      db.security = { codeHash: hash(DEFAULT_ADMIN_CODE), codeChanged: false, updatedAt: now() };
-      write();
-    }
-
-    // Синхронизация между вкладками
-    window.addEventListener('storage', (e) => {
-      if (e.key !== KEY) return;
-      db = read() || db;
-      bus.emit(EV.dbSync, db);
-      bus.emit(EV.dbChange, db);
-    });
-
+  async init() {
+    await this.refresh();
     return db;
+  },
+
+  /** Перечитывает состояние с сервера */
+  async refresh({ silent = false } = {}) {
+    let changed = true;
+
+    try {
+      const state = await api.get('/api/state');
+      // Сообщать об изменении, только если снимок и правда другой.
+      // Иначе опрос каждые четыре секунды перерисовывал бы открытую панель:
+      // распорядитель выбирал уровень участника или набирал стартовые очки —
+      // и поля возвращались к сохранённым значениям у него под руками.
+      const next = JSON.stringify(state);
+      changed = next !== signature;
+      signature = next;
+      db = { ...EMPTY, ...state };
+    } catch (e) {
+      // Сервер недоступен — оставляем прежний снимок, интерфейс не падает
+      if (!silent) console.warn('[store] обновление не удалось:', e.message);
+      throw e;
+    }
+
+    if (changed) {
+      // dbSync перерисовывает разделы целиком, dbChange — только шапку.
+      // «Тихое» обновление гасит первое, но не второе: иначе, например,
+      // счётчик непрочитанных остался бы висеть после открытия уведомлений —
+      // снимок уже обновлён, и следующий опрос никаких изменений не увидит.
+      if (!silent) bus.emit(EV.dbSync, db);
+      bus.emit(EV.dbChange, db);
+    }
+    return db;
+  },
+
+  /** Периодическое обновление: действия других участников видны сами */
+  startPolling(ms = 4000) {
+    this.stopPolling();
+    poller = setInterval(() => {
+      this.refresh({ silent: false }).catch(() => {});
+    }, ms);
+
+    // Возврат на вкладку — сразу свежие данные. Подписка одна на страницу,
+    // сколько бы раз ни перезапускали опрос.
+    if (!visibilityWired) {
+      visibilityWired = true;
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) this.refresh().catch(() => {});
+      });
+    }
+  },
+
+  stopPolling() {
+    if (poller) clearInterval(poller);
+    poller = null;
   },
 
   get db() { return db; },
 
-  /** Мутация состояния + сохранение + событие */
-  commit(fn, { silent = false } = {}) {
-    const result = fn(db);
-    write();
-    if (!silent) bus.emit(EV.dbChange, db);
-    return result;
+  /* ---------------- Чтение снимка ---------------- */
+
+  auth() { return db.auth; },
+
+  users() { return db.users || []; },
+
+  userById(id) {
+    return (db.users || []).find((u) => u.id === id)
+      || (db.auth && db.auth.id === id ? db.auth : null);
   },
-
-  reset() {
-    db = seedDb();
-    write();
-    bus.emit(EV.dbChange, db);
-  },
-
-  export() {
-    return JSON.stringify(db, null, 2);
-  },
-
-  import(json) {
-    const parsed = JSON.parse(json);
-    if (!parsed || !parsed.users) throw new Error('Некорректный формат базы');
-    db = parsed;
-    write();
-    bus.emit(EV.dbChange, db);
-  },
-
-  /* ---------------- Пользователи ---------------- */
-
-  users() { return db.users; },
-
-  userById(id) { return db.users.find((u) => u.id === id) || null; },
 
   userByEmail(email) {
     const e = String(email).trim().toLowerCase();
-    return db.users.find((u) => u.email.toLowerCase() === e) || null;
+    return (db.users || []).find((u) => u.email.toLowerCase() === e) || null;
   },
 
-  createUser({ email, password }) {
-    const user = {
-      id: uid('u'),
-      email: String(email).trim(),
-      pass: hash(password),
-      role: 'player',
-      state: 'registered',        // registered → applied → approved | rejected
-      createdAt: now(),
-      character: null,
-      application: null,
-      ownedRules: [],
-      notifications: [],
-    };
-    this.commit((d) => d.users.push(user));
-    return user;
+  participants() { return db.participants || []; },
+
+  participant(id) { return (db.participants || []).find((p) => p.id === id) || null; },
+
+  /** Анкеты в нужном состоянии — доступно распорядителю */
+  applications(state = 'applied') {
+    return (db.users || []).filter((u) => u.state === state && u.application);
   },
 
-  updateUser(id, patch) {
-    return this.commit((d) => {
-      const u = d.users.find((x) => x.id === id);
-      if (!u) return null;
-      Object.assign(u, patch);
-      return u;
-    });
+  shopRules() { return db.shopRules || []; },
+
+  ruleHistory() { return db.ruleHistory || []; },
+
+  baseRules() { return db.baseRules || []; },
+
+  notifications(userId = null) {
+    return (db.notifications || []).filter((n) => n.target === 'all' || n.target === userId);
   },
 
-  updateCharacter(id, patch) {
-    return this.commit((d) => {
-      const u = d.users.find((x) => x.id === id);
-      if (!u) return null;
-      u.character = { ...(u.character || {}), ...patch };
-      return u.character;
-    });
+  unreadCount(userId) {
+    return this.notifications(userId).filter((n) => !(n.read || []).includes(userId)).length;
   },
 
-  deleteUser(id) {
-    this.commit((d) => { d.users = d.users.filter((u) => u.id !== id); });
+  logs() { return db.logs || []; },
+
+  migration() { return db.migration || EMPTY.migration; },
+
+  security() { return db.security || EMPTY.security; },
+
+  /** Где на самом деле лежат данные — сервер сообщает это распорядителю */
+  storage() { return db.storage || 'PostgreSQL'; },
+
+  /** Записи реестра без аккаунта (демонстрационные) */
+  npcs() { return (db.participants || []).filter((p) => p.isNpc); },
+
+  /**
+   * Журнал ведёт сервер. Метод оставлен, чтобы старые вызовы
+   * не падали, и ничего не делает.
+   */
+  log() { /* журналирование выполняется на сервере */ },
+
+  /* ---------------- Участник ---------------- */
+
+  async submitApplication(_userId, data) {
+    await api.post('/api/application', { data });
+    return this.refresh();
   },
 
-  /* ---------------- Секретный код администрации ---------------- */
-
-  security() { return db.security; },
-
-  checkAdminCode(code) {
-    return db.security.codeHash === hash(String(code || '').trim());
+  async buyRule(ruleId) {
+    const res = await api.post('/api/shop/buy', { ruleId });
+    await this.refresh();
+    return res;
   },
 
-  setAdminCode(code) {
-    this.commit((d) => {
-      d.security.codeHash = hash(String(code).trim());
-      d.security.codeChanged = true;
-      d.security.updatedAt = now();
-    });
-  },
-
-  setAdminPassword(password) {
-    this.commit((d) => {
-      const a = d.users.find((u) => u.role === 'admin');
-      if (a) a.pass = hash(String(password));
-    });
-  },
-
-  /* ---------------- Участники (игроки + NPC) ---------------- */
-
-  /** Единый список для таблицы и поиска */
-  participants() {
-    const fromUsers = db.users
-      .filter((u) => u.state === 'approved' && u.character && u.role !== 'admin')
-      .map((u) => ({
-        id: u.id,
-        userId: u.id,
-        isNpc: false,
-        name: u.character.name,
-        nameJp: u.character.nameJp || '',
-        level: u.character.level,
-        points: u.character.points || 0,
-        rules: u.character.rules || 0,
-        colony: u.character.colony,
-        status: u.character.status || 'active',
-        application: u.application,
-        ownedRules: u.ownedRules || [],
-      }));
-
-    return [...fromUsers, ...db.npcs];
-  },
-
-  participant(id) {
-    return this.participants().find((p) => p.id === id) || null;
-  },
-
-  /** Очистка служебных записей реестра: остаются только реальные игроки */
-  clearNpcs() {
-    const count = db.npcs.length;
-    this.commit((d) => { d.npcs = []; });
-    return count;
-  },
-
-  /** Загрузка демонстрационных записей — только для проверки вида таблицы */
-  loadDemoRoster() {
-    this.commit((d) => {
-      d.npcs = DEMO_ROSTER.map((n, i) => ({
-        id: `n-${i}`,
-        isNpc: true,
-        name: n.name,
-        nameJp: n.jp,
-        level: n.level,
-        points: n.points,
-        rules: n.rules,
-        colony: n.colony,
-        status: n.status,
-      }));
-    });
-    return db.npcs.length;
-  },
-
-  updateNpc(id, patch) {
-    return this.commit((d) => {
-      const n = d.npcs.find((x) => x.id === id);
-      if (!n) return null;
-      Object.assign(n, patch);
-      return n;
-    });
-  },
-
-  /** Универсальное обновление участника — и NPC, и игрока */
-  updateParticipant(id, patch) {
-    if (id.startsWith('n-')) return this.updateNpc(id, patch);
-    return this.updateCharacter(id, patch);
+  async markRead() {
+    await api.post('/api/notifications/read');
+    return this.refresh({ silent: true });
   },
 
   /* ---------------- Анкеты ---------------- */
 
-  applications(state = 'applied') {
-    return db.users.filter((u) => u.state === state && u.application);
+  async approve(userId, { level, colony, points }) {
+    await api.post(`/api/admin/applications/${userId}/approve`, { level, colony, points });
+    return this.refresh();
   },
 
-  submitApplication(userId, data) {
-    return this.commit((d) => {
-      const u = d.users.find((x) => x.id === userId);
-      if (!u) return null;
-      u.application = { ...data, submittedAt: now() };
-      u.state = 'applied';
-      return u;
-    });
+  async reject(userId, reason) {
+    await api.post(`/api/admin/applications/${userId}/reject`, { reason });
+    return this.refresh();
   },
 
-  /* ---------------- Правила ---------------- */
+  /* ---------------- Управление участниками ---------------- */
 
-  shopRules() { return db.shopRules; },
-
-  addShopRule(rule) {
-    const item = { id: uid('r'), enabled: true, cost: 100, cat: 'Особые', ...rule };
-    this.commit((d) => d.shopRules.push(item));
-    return item;
+  async updateParticipant(pid, patch) {
+    await api.patch(`/api/admin/participants/${pid}`, patch);
+    return this.refresh();
   },
 
-  updateShopRule(id, patch) {
-    this.commit((d) => {
-      const r = d.shopRules.find((x) => x.id === id);
-      if (r) Object.assign(r, patch);
-    });
+  async changePoints(pid, { delta = null, value = null, reason = 'решение распорядителя' } = {}) {
+    const res = await api.post(`/api/admin/participants/${pid}/points`, { delta, value, reason });
+    await this.refresh();
+    return res;
   },
 
-  removeShopRule(id) {
-    this.commit((d) => { d.shopRules = d.shopRules.filter((r) => r.id !== id); });
+  async revive(pid) {
+    await api.post(`/api/admin/participants/${pid}/revive`);
+    return this.refresh();
   },
 
-  pushRuleHistory(entry) {
-    const item = { id: uid('rh'), ts: now(), type: 'add', ...entry };
-    this.commit((d) => d.ruleHistory.unshift(item));
-    return item;
+  async grantRule(pid, ruleId, free = true) {
+    await api.post(`/api/admin/participants/${pid}/grant`, { ruleId, free });
+    return this.refresh();
   },
 
-  ruleHistory() { return db.ruleHistory; },
+  async revokeRule(pid, ruleId) {
+    await api.post(`/api/admin/participants/${pid}/revoke`, { ruleId });
+    return this.refresh();
+  },
+
+  async deleteUser(uid) {
+    await api.del(`/api/admin/users/${uid}`);
+    return this.refresh();
+  },
+
+  async mass({ scope, action, amount = 0 }) {
+    const res = await api.post('/api/admin/mass', { scope, action, amount });
+    await this.refresh();
+    return res;
+  },
+
+  /* ---------------- Правила магазина ---------------- */
+
+  async addShopRule(rule) {
+    await api.post('/api/admin/shop-rules', rule);
+    return this.refresh();
+  },
+
+  async updateShopRule(id, patch) {
+    const current = this.shopRules().find((r) => r.id === id) || {};
+    await api.patch(`/api/admin/shop-rules/${id}`, { ...current, ...patch });
+    return this.refresh();
+  },
+
+  async removeShopRule(id) {
+    await api.del(`/api/admin/shop-rules/${id}`);
+    return this.refresh();
+  },
 
   /* ---------------- Уведомления ---------------- */
 
-  notifications(userId = null) {
-    return db.notifications.filter((n) => n.target === 'all' || n.target === userId);
+  async addNotification({ type = 'broadcast', title = '', text = '', target = 'all' }) {
+    await api.post('/api/admin/notifications', { type, title, text, target });
+    return this.refresh();
   },
 
-  addNotification({ type = 'broadcast', title, text, target = 'all' }) {
-    const item = { id: uid('nt'), ts: now(), type, title, text, target, read: [] };
-    this.commit((d) => d.notifications.unshift(item));
-    bus.emit(EV.notify, item);
-    return item;
+  async broadcast({ scope = 'all', title, text }) {
+    const res = await api.post('/api/admin/broadcast', { scope, title, text });
+    await this.refresh();
+    return res;
   },
 
-  markRead(userId) {
-    this.commit((d) => {
-      d.notifications.forEach((n) => {
-        if ((n.target === 'all' || n.target === userId) && !n.read.includes(userId)) {
-          n.read.push(userId);
-        }
-      });
-    }, { silent: true });
+  async clearNotices() {
+    await api.post('/api/admin/notifications/clear');
+    return this.refresh();
   },
-
-  unreadCount(userId) {
-    return this.notifications(userId).filter((n) => !n.read.includes(userId)).length;
-  },
-
-  /* ---------------- Журнал ---------------- */
-
-  log(actor, action, text, level = 'info') {
-    const item = { id: uid('lg'), ts: now(), actor, action, text, level };
-    this.commit((d) => {
-      d.logs.unshift(item);
-      if (d.logs.length > 500) d.logs.length = 500;
-    }, { silent: true });
-    return item;
-  },
-
-  logs() { return db.logs; },
 
   /* ---------------- Миграция ---------------- */
 
-  migration() { return db.migration; },
-
-  startMigration(note = '') {
-    this.commit((d) => {
-      d.migration = {
-        number: (d.migration?.number || 0) + 1,
-        active: true,
-        startedAt: now(),
-        endedAt: null,
-        note,
-      };
-      // Возвращаем в игру всех, кто выбыл в прошлой миграции
-      d.users.forEach((u) => {
-        if (u.character && u.state === 'approved') {
-          u.character.status = u.role === 'admin' ? 'out' : 'active';
-          delete u.deadMigration;
-          delete u.deathReason;
-        }
-      });
-      d.npcs.forEach((n) => { if (n.status === 'frozen') n.status = 'active'; });
-    });
-    bus.emit(EV.migrationStart, db.migration);
+  async startMigration(note = '') {
+    const res = await api.post('/api/admin/migration/start', { note });
+    await this.refresh();
+    bus.emit(EV.migrationStart, this.migration());
+    return res;
   },
 
-  endMigration(note = '') {
-    this.commit((d) => {
-      d.migration.active = false;
-      d.migration.endedAt = now();
-      d.migration.note = note || d.migration.note;
-      d.users.forEach((u) => {
-        if (u.role !== 'admin' && u.character && u.state === 'approved') {
-          u.character.status = 'dead';
-          // Номер и причина нужны экрану смерти: без них он всегда
-          // сообщал бы о первой миграции.
-          u.deadMigration = d.migration.number;
-          u.deathReason = note
-            ? `${note} Миграция №${d.migration.number} завершена.`
-            : '';
-        }
-      });
-    });
-    bus.emit(EV.migrationEnd, db.migration);
+  async endMigration(note = '') {
+    await api.post('/api/admin/migration/end', { note });
+    await this.refresh();
+    bus.emit(EV.migrationEnd, this.migration());
+  },
+
+  async setMigrationNote(note) {
+    await api.patch('/api/admin/migration', { note });
+    return this.refresh();
+  },
+
+  /* ---------------- Безопасность и обслуживание ---------------- */
+
+  async setSecurity({ code = null, password = null }) {
+    await api.post('/api/admin/security', { code, password });
+    return this.refresh();
+  },
+
+  async clearLogs() {
+    await api.post('/api/admin/logs/clear');
+    return this.refresh();
+  },
+
+  async loadDemoRoster() {
+    const res = await api.post('/api/admin/npcs/load');
+    await this.refresh();
+    return res.count;
+  },
+
+  async clearNpcs() {
+    const res = await api.post('/api/admin/npcs/clear');
+    await this.refresh();
+    return res.count;
+  },
+
+  async resetSystem() {
+    await api.post('/api/admin/reset');
+    return this.refresh();
+  },
+
+  /** Выгрузка состояния для резервной копии */
+  async exportState() {
+    const data = await api.get('/api/admin/export');
+    return JSON.stringify(data, null, 2);
   },
 };

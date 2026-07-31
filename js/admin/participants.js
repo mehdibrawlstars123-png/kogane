@@ -3,15 +3,15 @@
  * выдача и отзыв правил, удаление.
  */
 
-import { $, $$, on } from '../core/dom.js?v=9';
-import { store } from '../core/store.js?v=9';
-import { esc, pts } from '../core/format.js?v=9';
-import { modal, toast } from '../core/ui.js?v=9';
-import { notify } from '../core/notify.js?v=9';
-import { levelOptions, COLONIES, STATUSES, colonyById, levelById } from '../data/labels.js?v=9';
-import { participantIcon } from '../core/sprites.js?v=9';
-import { participantCard } from '../sections/shared.js?v=9';
-import { crt } from '../core/crt.js?v=9';
+import { $, $$, on } from '../core/dom.js?v=10';
+import { store } from '../core/store.js?v=10';
+import { esc, pts } from '../core/format.js?v=10';
+import { modal, toast } from '../core/ui.js?v=10';
+import { notify } from '../core/notify.js?v=10';
+import { levelOptions, COLONIES, STATUSES, colonyById, levelById } from '../data/labels.js?v=10';
+import { participantIcon } from '../core/sprites.js?v=10';
+import { participantCard } from '../sections/shared.js?v=10';
+import { crt } from '../core/crt.js?v=10';
 
 let selected = null;
 let query = '';
@@ -131,23 +131,29 @@ function wireMassOps(root, ctx, self) {
   on($('#massPoints', root), 'input', (e) => { massAmount = Math.max(0, Number(e.target.value) || 0); });
   paintCount();
 
-  /** Общая обработка: подтверждение → действие над каждым → журнал */
-  const bulk = async ({ title, jp, text, okText, danger = false, apply, logAction, logText }) => {
+  /**
+   * Общая обработка: подтверждение → один запрос к серверу.
+   * Сервер сам обходит участников, шлёт уведомления и пишет журнал —
+   * так изменение не может остаться наполовину применённым.
+   */
+  const bulk = async ({ title, jp, text, okText, danger = false, action, amount = 0 }) => {
     const list = targets();
     if (!list.length) { toast.err('Никого не затронуто', 'В выбранном охвате нет участников.'); return; }
 
     const ok = await modal.confirm({
       title, jp, danger,
-      text: `${text}
-
-Затронет участников: ${list.length}.`,
+      text: `${text}\n\nЗатронет участников: ${list.length}.`,
       okText,
     });
     if (!ok) return;
 
-    list.forEach(apply);
-    store.log(ctx.admin.email, logAction, `${logText} Затронуто: ${list.length}.`, danger ? 'warn' : 'info');
-    toast.ok('Готово', `Затронуто участников: ${list.length}`);
+    try {
+      const res = await store.mass({ scope: scope.value, action, amount });
+      toast.ok('Готово', `Затронуто участников: ${res.affected}`);
+    } catch (err) {
+      toast.err('Действие не выполнено', err.message);
+      return;
+    }
     refresh();
   };
 
@@ -158,17 +164,7 @@ function wireMassOps(root, ctx, self) {
     bulk({
       title: 'Начисление очков', jp: '一斉加点',
       text: `Начислить по ${amount} очков каждому.`,
-      okText: 'Начислить',
-      apply: (p) => {
-        const total = (p.points || 0) + amount;
-        store.updateParticipant(p.id, { points: total });
-        if (!p.isNpc) {
-          notify.emit('points', { amount, total, reason: 'массовое начисление', actor: ctx.admin.email },
-            { target: p.id, silent: true });
-        }
-      },
-      logAction: 'mass-points-add',
-      logText: `Массовое начисление +${amount}.`,
+      okText: 'Начислить', action: 'add', amount,
     });
   });
 
@@ -179,17 +175,7 @@ function wireMassOps(root, ctx, self) {
     bulk({
       title: 'Списание очков', jp: '一斉減点', danger: true,
       text: `Списать по ${amount} очков у каждого. Ниже нуля счёт не опускается.`,
-      okText: 'Списать',
-      apply: (p) => {
-        const total = Math.max(0, (p.points || 0) - amount);
-        store.updateParticipant(p.id, { points: total });
-        if (!p.isNpc) {
-          notify.emit('penalty', { amount, total, reason: 'массовое списание', actor: ctx.admin.email },
-            { target: p.id, silent: true });
-        }
-      },
-      logAction: 'mass-points-sub',
-      logText: `Массовое списание −${amount}.`,
+      okText: 'Списать', action: 'sub', amount,
     });
   });
 
@@ -197,38 +183,13 @@ function wireMassOps(root, ctx, self) {
     title: 'Массовое выбывание', jp: '一斉死亡宣告', danger: true,
     text: 'Все выбранные участники получат полноэкранное уведомление о выбывании, '
         + 'а доступ к системе им закроется.',
-    okText: 'Объявить выбывшими',
-    apply: (p) => {
-      store.updateParticipant(p.id, { status: 'dead' });
-      if (!p.isNpc) {
-        store.updateUser(p.id, {
-          deathReason: 'Выбывание подтверждено распорядителем игры.',
-          deadMigration: store.migration().number,
-        });
-        notify.emit('death', { actor: ctx.admin.email }, { target: p.id, silent: true });
-      }
-    },
-    logAction: 'mass-kill',
-    logText: 'Массовое выбывание.',
+    okText: 'Объявить выбывшими', action: 'kill',
   }));
 
   on($('#massRevive', root), 'click', () => bulk({
     title: 'Массовый возврат в игру', jp: '一斉復帰',
     text: 'Выбранные участники вернутся в игру, экран выбывания у них снимется.',
-    okText: 'Вернуть',
-    apply: (p) => {
-      store.updateParticipant(p.id, { status: 'active' });
-      if (!p.isNpc) {
-        store.commit((d) => {
-          const u = d.users.find((x) => x.id === p.id);
-          if (!u) return;
-          delete u.deadMigration;
-          delete u.deathReason;
-        });
-      }
-    },
-    logAction: 'mass-revive',
-    logText: 'Массовый возврат в игру.',
+    okText: 'Вернуть', action: 'revive',
   }));
 }
 
@@ -352,9 +313,11 @@ function paintPane(root, ctx, self) {
   }));
 
   /* Быстрые очки */
-  $$('[data-pts]', pane).forEach((b) => on(b, 'click', () => {
-    const delta = Number(b.dataset.pts);
-    applyPoints(p, delta, admin, refresh);
+  $$('[data-pts]', pane).forEach((b) => on(b, 'click', async () => {
+    try {
+      await store.changePoints(p.id, { delta: Number(b.dataset.pts) });
+    } catch (err) { toast.err('Не удалось изменить очки', err.message); return; }
+    refresh();
   }));
 
   on($('#pSetPts', pane), 'click', async () => {
@@ -364,18 +327,15 @@ function paintPane(root, ctx, self) {
     });
     if (v === null) return;
     const total = Math.max(0, Number(v) || 0);
-    store.updateParticipant(p.id, { points: total });
-    store.log(admin.email, 'points-set', `${p.name}: очки установлены в ${total}.`);
-    if (!p.isNpc) {
-      notify.emit('points', { amount: total - p.points, total, reason: 'решение распорядителя', actor: admin.email },
-        { target: p.id, silent: true });
-    }
+    try {
+      await store.changePoints(p.id, { value: total });
+    } catch (err) { toast.err('Не удалось задать очки', err.message); return; }
     toast.ok('Очки обновлены', `${p.name}: ${total}`);
     refresh();
   });
 
   /* Сохранение полей */
-  on($('#pSave', pane), 'click', () => {
+  on($('#pSave', pane), 'click', async () => {
     const level = $('#pLevel', pane).value;
     const colony = $('#pColony', pane).value;
     const status = $('#pStatus', pane).value;
@@ -387,18 +347,11 @@ function paintPane(root, ctx, self) {
     if (status !== p.status) changes.push(`статус → ${STATUSES[status].ru}`);
     if (rules !== p.rules) changes.push(`правил → ${rules}`);
 
-    store.updateParticipant(p.id, { level, colony, status, rules });
+    try {
+      await store.updateParticipant(p.id, { level, colony, status, rules });
+    } catch (err) { toast.err('Изменения не сохранены', err.message); return; }
 
-    if (!p.isNpc) {
-      if (colony !== p.colony) notify.emit('colony', { colony, actor: admin.email }, { target: p.id, silent: true });
-      if (level !== p.level) notify.emit('level', { level, actor: admin.email }, { target: p.id, silent: true });
-      if (status === 'dead' && p.status !== 'dead') {
-        notify.emit('death', { actor: admin.email }, { target: p.id, silent: true });
-      }
-    }
-
-    store.log(admin.email, 'edit-participant', `${p.name}: ${changes.join(', ') || 'без изменений'}.`);
-    toast.ok('Изменения применены', `${p.name} — ${changes.length} ${changes.length ? 'правок' : 'правок'}`);
+    toast.ok('Изменения применены', `${p.name}: ${changes.join(', ') || 'без изменений'}`);
     crt.glitch($('.screen'), 220);
     refresh();
   });
@@ -414,22 +367,10 @@ function paintPane(root, ctx, self) {
     });
     if (!ok) return;
 
-    store.updateParticipant(p.id, { status: 'active' });
-    if (!p.isNpc) {
-      store.commit((d) => {
-        const u = d.users.find((x) => x.id === p.id);
-        if (!u) return;
-        delete u.deadMigration;
-        delete u.deathReason;
-      });
-      notify.emit('broadcast', {
-        overrideTitle: 'Возвращение в игру',
-        text: 'Распорядитель вернул вас в Смертельную миграцию. Доступ к системе восстановлен.',
-        actor: admin.email,
-      }, { target: p.id, silent: true });
-    }
+    try {
+      await store.revive(p.id);
+    } catch (err) { toast.err('Не удалось вернуть', err.message); return; }
 
-    store.log(admin.email, 'revive', `${p.name} возвращён в игру.`);
     toast.ok('Участник возвращён', p.name);
     refresh();
   });
@@ -441,7 +382,9 @@ function paintPane(root, ctx, self) {
       title: 'Уведомление участнику', jp: '通知', label: `Текст для ${p.name}`, area: true,
     });
     if (!text) return;
-    notify.emit('broadcast', { title: 'Сообщение распорядителя', text, actor: admin.email }, { target: p.id, silent: true });
+    try {
+      await store.addNotification({ title: 'Сообщение распорядителя', text, target: p.id });
+    } catch (err) { toast.err('Не отправлено', err.message); return; }
     toast.ok('Уведомление отправлено', p.name);
   });
 
@@ -469,28 +412,15 @@ function paintPane(root, ctx, self) {
         <button class="btn btn--sm btn--primary" type="button" id="grantGo">Выдать</button>`,
     });
 
-    on(el.querySelector('#grantGo'), 'click', () => {
+    on(el.querySelector('#grantGo'), 'click', async () => {
       const ruleId = el.querySelector('#grantSel').value;
       const free = el.querySelector('#grantFree').checked;
       const rule = shopRules.find((r) => r.id === ruleId);
 
-      if (p.isNpc) {
-        store.updateNpc(p.id, { rules: (p.rules || 0) + 1 });
-      } else {
-        store.commit((d) => {
-          const u = d.users.find((x) => x.id === p.id);
-          u.ownedRules = [...(u.ownedRules || []), ruleId];
-          u.character.rules = (u.character.rules || 0) + 1;
-          if (!free) u.character.points = Math.max(0, (u.character.points || 0) - rule.cost);
-        });
-        notify.emit('purchase', {
-          title: rule.title, cost: free ? 0 : rule.cost,
-          left: store.userById(p.id).character.points, actor: admin.email,
-        }, { target: p.id, silent: true });
-      }
+      try {
+        await store.grantRule(p.id, ruleId, free);
+      } catch (err) { toast.err('Не удалось выдать', err.message); return; }
 
-      store.pushRuleHistory({ type: 'add', title: rule.title, jp: rule.jp, by: p.name, colony: p.colony, ruleId });
-      store.log(admin.email, 'grant-rule', `${p.name}: выдано правило «${rule.title}».`);
       modal.close();
       toast.ok('Правило выдано', `${p.name}: ${rule.title}`);
       refresh();
@@ -507,16 +437,11 @@ function paintPane(root, ctx, self) {
     });
     if (!ok) return;
 
-    store.commit((d) => {
-      const u = d.users.find((x) => x.id === p.id);
-      if (!u) return;
-      u.ownedRules = (u.ownedRules || []).filter((id) => id !== rule.id);
-      u.character.rules = Math.max(0, (u.character.rules || 0) - 1);
-    });
+    try {
+      await store.revokeRule(p.id, rule.id);
+    } catch (err) { toast.err('Не удалось отозвать', err.message); return; }
 
-    store.pushRuleHistory({ type: 'del', title: rule.title, jp: rule.jp, by: 'Распорядитель', colony: p.colony });
-    notify.emit('ruleTaken', { title: rule.title, actor: admin.email }, { target: p.id, silent: true });
-    store.log(admin.email, 'revoke-rule', `${p.name}: отозвано правило «${rule.title}».`, 'warn');
+    toast.ok('Правило отозвано', rule.title);
     refresh();
   }));
 
@@ -531,12 +456,10 @@ function paintPane(root, ctx, self) {
     });
     if (!ok) return;
 
-    store.updateParticipant(p.id, { status: 'dead' });
-    if (!p.isNpc) {
-      store.updateUser(p.id, { deathReason: 'Выбывание подтверждено распорядителем игры.', deadMigration: store.migration().number });
-      notify.emit('death', { actor: admin.email }, { target: p.id, silent: true });
-    }
-    store.log(admin.email, 'kill', `${p.name} объявлен выбывшим.`, 'danger');
+    try {
+      await store.updateParticipant(p.id, { status: 'dead' });
+    } catch (err) { toast.err('Не удалось объявить выбывшим', err.message); return; }
+
     toast.show({ type: 'death', title: 'Участник выбыл', text: p.name, alert: true });
     refresh();
   });
@@ -551,26 +474,12 @@ function paintPane(root, ctx, self) {
     });
     if (!ok) return;
 
-    store.deleteUser(p.id);
-    store.log(admin.email, 'delete-user', `Аккаунт ${p.name} удалён.`, 'danger');
+    try {
+      await store.deleteUser(p.id);
+    } catch (err) { toast.err('Не удалось удалить', err.message); return; }
+
     selected = null;
     toast.show({ type: 'rejected', title: 'Аккаунт удалён', text: p.name, alert: true });
     refresh();
   });
-}
-
-/* Быстрое изменение очков */
-function applyPoints(p, delta, admin, refresh) {
-  const total = Math.max(0, (p.points || 0) + delta);
-  store.updateParticipant(p.id, { points: total });
-
-  if (!p.isNpc) {
-    notify.emit(delta >= 0 ? 'points' : 'penalty', {
-      amount: Math.abs(delta), total, reason: 'решение распорядителя', actor: admin.email,
-    }, { target: p.id, silent: true });
-  }
-
-  store.log(admin.email, delta >= 0 ? 'points-add' : 'points-sub',
-    `${p.name}: ${delta >= 0 ? '+' : ''}${delta} очков → ${total}.`);
-  refresh();
 }
