@@ -4,41 +4,44 @@
    ========================================================= */
 
 /* Base */
-@import url("base/variables.css?v=10");
-@import url("base/reset.css?v=10");
-@import url("base/typography.css?v=10");
-@import url("base/animations.css?v=10");
+@import url("base/variables.css?v=11");
+@import url("base/reset.css?v=11");
+@import url("base/typography.css?v=11");
+@import url("base/animations.css?v=11");
 
 /* Effects */
-@import url("effects/crt.css?v=10");
-@import url("effects/glitch.css?v=10");
-@import url("effects/events.css?v=10");
+@import url("effects/crt.css?v=11");
+@import url("effects/glitch.css?v=11");
+@import url("effects/events.css?v=11");
 
 /* Layout */
-@import url("layout/screen.css?v=10");
-@import url("layout/panel.css?v=10");
-@import url("layout/grid.css?v=10");
+@import url("layout/screen.css?v=11");
+@import url("layout/panel.css?v=11");
+@import url("layout/grid.css?v=11");
 
 /* Components */
-@import url("components/button.css?v=10");
-@import url("components/field.css?v=10");
-@import url("components/nav.css?v=10");
-@import url("components/table.css?v=10");
-@import url("components/card.css?v=10");
-@import url("components/rule.css?v=10");
-@import url("components/notice.css?v=10");
-@import url("components/modal.css?v=10");
-@import url("components/search.css?v=10");
-@import url("components/boot.css?v=10");
-@import url("components/sprite.css?v=10");
-@import url("components/volume.css?v=10");
+@import url("components/button.css?v=11");
+@import url("components/field.css?v=11");
+@import url("components/nav.css?v=11");
+@import url("components/table.css?v=11");
+@import url("components/card.css?v=11");
+@import url("components/rule.css?v=11");
+@import url("components/notice.css?v=11");
+@import url("components/modal.css?v=11");
+@import url("components/search.css?v=11");
+@import url("components/boot.css?v=11");
+@import url("components/sprite.css?v=11");
+@import url("components/volume.css?v=11");
 
 /* Pages */
-@import url("pages/auth.css?v=10");
-@import url("pages/application.css?v=10");
-@import url("pages/system.css?v=10");
-@import url("pages/admin.css?v=10");
-@import url("pages/death.css?v=10");
+@import url("pages/auth.css?v=11");
+@import url("pages/application.css?v=11");
+@import url("pages/system.css?v=11");
+@import url("pages/admin.css?v=11");
+@import url("pages/death.css?v=11");
 
 /* Utils */
-@import url("utils/helpers.css?v=10");
+@import url("utils/helpers.css?v=11");
+
+/* Телефоны и планшеты — последним: перекрывает правила компонентов */
+@import url("layout/responsive.css?v=11");

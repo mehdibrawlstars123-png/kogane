@@ -2,18 +2,18 @@
  * Страница входа: загрузка системы → вход/регистрация → подключение к барьеру.
  */
 
-import { $, $$, on } from '../core/dom.js?v=10';
-import { store } from '../core/store.js?v=10';
-import { auth } from '../core/auth.js?v=10';
-import { crt } from '../core/crt.js?v=10';
-import { audio } from '../core/audio.js?v=10';
-import { kogane } from '../core/sprites.js?v=10';
-import { typeLines, type, wait } from '../core/typewriter.js?v=10';
-import { wireSounds, volumeControl } from '../core/ui.js?v=10';
-import { connectSequence } from '../modules/connect.js?v=10';
-import { storage } from '../utils/storage.js?v=10';
-import { trace } from '../core/trace.js?v=10';
-import { events } from '../core/events.js?v=10';
+import { $, $$, on } from '../core/dom.js?v=11';
+import { store } from '../core/store.js?v=11';
+import { auth } from '../core/auth.js?v=11';
+import { crt } from '../core/crt.js?v=11';
+import { audio } from '../core/audio.js?v=11';
+import { kogane } from '../core/sprites.js?v=11';
+import { typeLines, type, wait } from '../core/typewriter.js?v=11';
+import { wireSounds, volumeControl } from '../core/ui.js?v=11';
+import { connectSequence } from '../modules/connect.js?v=11';
+import { storage } from '../utils/storage.js?v=11';
+import { trace } from '../core/trace.js?v=11';
+import { events } from '../core/events.js?v=11';
 
 crt.init();
 wireSounds();

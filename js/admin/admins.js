@@ -6,10 +6,10 @@
  * Пароли и коды хранятся хешами: показать их система не может, только заменить.
  */
 
-import { $, $$, on } from '../core/dom.js?v=10';
-import { store } from '../core/store.js?v=10';
-import { toast, modal } from '../core/ui.js?v=10';
-import { esc, dt } from '../core/format.js?v=10';
+import { $, $$, on } from '../core/dom.js?v=11';
+import { store } from '../core/store.js?v=11';
+import { toast, modal } from '../core/ui.js?v=11';
+import { esc, dt } from '../core/format.js?v=11';
 
 export const adminsAdmin = {
   render(root, ctx) {

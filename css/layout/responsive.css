@@ -1,0 +1,261 @@
+/* =========================================================
+   ТЕЛЕФОНЫ И ПЛАНШЕТЫ
+
+   Подключается последним и правит то, что ломалось на узких
+   экранах. Каждое правило — по замеру, а не «на всякий случай».
+   ========================================================= */
+
+/* ---------------------------------------------------------
+   1. Шапка
+
+   На экране 375 px правая часть шапки уезжала за край на 33 px:
+   регулятор громкости и кнопки обрезались, дотянуться до них
+   было нельзя. Причина — flex-shrink: 0 на всём блоке.
+   --------------------------------------------------------- */
+
+@media (max-width: 900px) {
+  .sys-head {
+    gap: var(--sp-2);
+    padding: var(--sp-2) var(--sp-3);
+  }
+
+  .sys-head__meta {
+    min-width: 0;          /* иначе flex не даёт содержимому сжаться */
+    flex-shrink: 1;
+    flex-wrap: wrap;
+    gap: var(--sp-1) var(--sp-3);
+    margin-left: auto;
+  }
+
+  #headTools {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: var(--sp-1);
+    min-width: 0;
+  }
+
+  .sys-head__jp { font-size: var(--fs-base); }
+}
+
+@media (max-width: 640px) {
+  /* Ползунок короче: на телефоне важнее, чтобы он целиком помещался */
+  .volume__slider { width: 62px; }
+  .volume { padding: 2px 6px; gap: var(--sp-1); }
+  .volume__value { display: none; }
+
+  /* Заголовок системы уступает место кнопкам */
+  .sys-head__title { display: none; }
+  .sys-head { padding: var(--sp-2); }
+  .sys-foot { padding: var(--sp-2) var(--sp-3); font-size: 10px; }
+}
+
+/* Совсем узкие телефоны */
+@media (max-width: 380px) {
+  .volume__slider { width: 46px; }
+  .sys-head__jp { font-size: var(--fs-sm); }
+}
+
+/* ---------------------------------------------------------
+   2. Нажатия пальцем
+
+   Мышь попадает в кнопку 24 px, палец — нет. Ниже 900 px все
+   кнопки и поля получают высоту, за которую можно взяться.
+   --------------------------------------------------------- */
+
+@media (max-width: 900px) {
+  .btn { min-height: 40px; }
+  .btn--sm { min-height: 36px; padding-inline: var(--sp-3); }
+  .btn--bare { min-height: 32px; }
+
+  .navitem { min-height: 46px; }
+  .nav-toggle { min-height: 40px; }
+
+  .field__input,
+  .field__select,
+  .field__area {
+    /* 16 px — порог, ниже которого Safari на iPhone приближает страницу
+       при касании поля и обратно уже не отдаляет */
+    font-size: 16px;
+    min-height: 44px;
+  }
+  .field__area { min-height: 96px; }
+
+  /* Ползунок должен ловиться пальцем, а не только курсором */
+  .volume__slider { height: 22px; }
+  .volume__slider::-webkit-slider-thumb { width: 16px; height: 16px; }
+}
+
+/* ---------------------------------------------------------
+   3. Выдвижное меню
+
+   Меню перекрывает содержимое, но раньше закрыть его можно было
+   только кнопкой. Затемнение ловит касание мимо меню.
+   --------------------------------------------------------- */
+
+@media (max-width: 900px) {
+  .sys-nav {
+    width: min(280px, 82vw);
+    padding-bottom: var(--sp-6);
+  }
+
+  .nav-veil {
+    position: absolute;
+    inset: 0;
+    z-index: 25;
+    background: rgba(4, 20, 15, 0.55);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity var(--dur-3) var(--ease);
+  }
+  .nav-veil.is-open { opacity: 1; visibility: visible; }
+
+  /* Раздел мог закрыть меню и мимо wireNav (например, при переходе
+     по ссылке внутри страницы) — тогда затемнение снимается по состоянию
+     самого меню, а не по своему классу. */
+  .sys-body:has(.sys-nav:not(.is-open)) .nav-veil {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+/* ---------------------------------------------------------
+   4. Содержимое разделов
+   --------------------------------------------------------- */
+
+@media (max-width: 900px) {
+  .sys-main { padding: var(--sp-3); }
+
+  .sec-head { flex-wrap: wrap; gap: var(--sp-2); }
+  .sec-head__title { font-size: var(--fs-base); }
+
+  /* Плитки со счётчиками: по две в ряд вместо шести подряд */
+  .astats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+  /* Панели во всю ширину */
+  .cols, .cols--2, .cols--3 { grid-template-columns: 1fr; }
+
+  /* Длинные таблицы прокручиваются внутри себя, а не тянут страницу */
+  .scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  /* Кнопка с длинной подписью («Удалить все аккаунты участников (12)»)
+     на планшете вылезала за правый край: разрешаем перенос строки */
+  .danger-zone .btn {
+    white-space: normal;
+    text-align: left;
+    line-height: 1.3;
+    max-width: 100%;
+  }
+
+  /* Строка учётной записи распорядителя: кнопки под текстом */
+  .logline--acct { gap: var(--sp-1); padding: var(--sp-2); }
+  .logline__tools { justify-content: flex-start; flex-wrap: wrap; }
+}
+
+@media (max-width: 560px) {
+  .astats { grid-template-columns: 1fr 1fr; }
+  .tile__val { font-size: var(--fs-lg); }
+
+  /* Кнопки в ряд переносятся, а не сжимаются в нечитаемые */
+  .btn-row { flex-wrap: wrap; gap: var(--sp-2); }
+  .btn-row > .btn { flex: 1 1 auto; }
+}
+
+/* Три ряда, которые упирались в правый край на 375 px:
+   заголовок панели с кнопками, подсказка поиска и подвал карточки
+   правила. Все три — flex без переноса. */
+
+@media (max-width: 640px) {
+  .panel__head { flex-wrap: wrap; gap: var(--sp-1) var(--sp-2); }
+  .panel__tools { margin-left: 0; flex-wrap: wrap; }
+
+  .search__hint { flex-wrap: wrap; gap: var(--sp-1) var(--sp-3); }
+
+  .rule__foot { flex-wrap: wrap; gap: var(--sp-2); }
+  .rule__buy { margin-left: 0; width: 100%; }
+  .rule__buy > .btn { width: 100%; }
+}
+
+/* ---------------------------------------------------------
+   5. Окна
+
+   На телефоне окно занимало всю ширину впритык к краям,
+   а длинное содержимое уезжало за нижний край.
+   --------------------------------------------------------- */
+
+@media (max-width: 900px) {
+  .modal { padding: var(--sp-3); }
+  .modal__win { width: 100%; max-height: 88dvh; }
+  .modal__body { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .modal__foot { flex-wrap: wrap; gap: var(--sp-2); }
+  .modal__foot > .btn { flex: 1 1 auto; }
+}
+
+/* ---------------------------------------------------------
+   6. Экран входа и анкета
+   --------------------------------------------------------- */
+
+@media (max-width: 640px) {
+  .auth { padding: var(--sp-3); }
+  .auth__tabs { flex-wrap: wrap; }
+  .auth__tab { flex: 1 1 auto; min-height: 42px; }
+
+  .field-row { grid-template-columns: 1fr; }
+
+  .regsteps { gap: var(--sp-2); font-size: 10px; }
+}
+
+/* ---------------------------------------------------------
+   7. Планшет в книжной ориентации
+
+   768 px — ширина, на которой боковое меню уже спрятано,
+   но места ещё достаточно для двух колонок в карточках.
+   --------------------------------------------------------- */
+
+@media (min-width: 641px) and (max-width: 900px) {
+  .sys-main { padding: var(--sp-4); }
+  .astats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .cols--2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* ---------------------------------------------------------
+   8. Экран выбывания и объявление события
+
+   Крупные надписи на телефоне не должны вылезать за края.
+   --------------------------------------------------------- */
+
+@media (max-width: 640px) {
+  .death__jp, .evfx__jp { font-size: clamp(46px, 22vw, 92px); }
+  .death__title { font-size: var(--fs-xl); }
+  .evfx__sub, .death__text { padding-inline: var(--sp-4); font-size: var(--fs-xxs); }
+  .ev-badge { font-size: 10px; padding: 2px var(--sp-1); }
+}
+
+/* ---------------------------------------------------------
+   9. Телефон лёжа
+
+   Высота экрана меньше 480 px: шапка и подвал съедают всё место,
+   поэтому ужимаем их и отдаём высоту содержимому.
+   --------------------------------------------------------- */
+
+@media (max-height: 480px) and (orientation: landscape) {
+  .sys-head { padding: 2px var(--sp-3); }
+  .sys-head__jp { font-size: var(--fs-sm); }
+  .sys-foot { display: none; }
+  .boot__logo { font-size: var(--fs-xl); }
+}
+
+/* ---------------------------------------------------------
+   10. Сенсорный ввод
+
+   На сенсорных экранах :hover срабатывает «залипанием» после
+   касания и оставляет подсветку. Держим её только для мыши.
+   --------------------------------------------------------- */
+
+@media (hover: none) {
+  .roster__row:hover { background: none; color: inherit; }
+  .roster__row:hover .sprite { filter: none; }
+  .tile:hover { border-color: var(--ink-line); background: none; }
+  .btn:hover { transform: none; }
+}

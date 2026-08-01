@@ -3,19 +3,19 @@
  * валидация и отправка на рассмотрение распорядителю.
  */
 
-import { $, $$, on, create } from '../core/dom.js?v=10';
-import { store } from '../core/store.js?v=10';
-import { auth } from '../core/auth.js?v=10';
-import { crt } from '../core/crt.js?v=10';
-import { audio } from '../core/audio.js?v=10';
-import { toast, wireSounds, headTools } from '../core/ui.js?v=10';
-import { esc } from '../core/format.js?v=10';
-import { APPLICATION_SCHEMA } from '../data/seed.js?v=10';
-import { levelOptions, COLONIES } from '../data/labels.js?v=10';
-import { storage } from '../utils/storage.js?v=10';
-import { wait } from '../core/typewriter.js?v=10';
-import { events } from '../core/events.js?v=10';
-import { debounce } from '../utils/helpers.js?v=10';
+import { $, $$, on, create } from '../core/dom.js?v=11';
+import { store } from '../core/store.js?v=11';
+import { auth } from '../core/auth.js?v=11';
+import { crt } from '../core/crt.js?v=11';
+import { audio } from '../core/audio.js?v=11';
+import { toast, wireSounds, headTools } from '../core/ui.js?v=11';
+import { esc } from '../core/format.js?v=11';
+import { APPLICATION_SCHEMA } from '../data/seed.js?v=11';
+import { levelOptions, COLONIES } from '../data/labels.js?v=11';
+import { storage } from '../utils/storage.js?v=11';
+import { wait } from '../core/typewriter.js?v=11';
+import { events } from '../core/events.js?v=11';
+import { debounce } from '../utils/helpers.js?v=11';
 
 crt.init();
 wireSounds();

@@ -3,27 +3,27 @@
  * Роутинг по hash, синхронизация с базой, реакция на действия админа.
  */
 
-import { $, $$, on } from '../core/dom.js?v=10';
-import { store } from '../core/store.js?v=10';
-import { auth } from '../core/auth.js?v=10';
-import { crt } from '../core/crt.js?v=10';
-import { audio } from '../core/audio.js?v=10';
-import { bus, EV } from '../core/bus.js?v=10';
-import { wireSounds, headTools, toast } from '../core/ui.js?v=10';
-import { pts, esc } from '../core/format.js?v=10';
-import { colonyById } from '../data/labels.js?v=10';
-import { checkDeath, hideDeathScreen } from '../modules/death.js?v=10';
-import { shownToasts } from '../core/notify.js?v=10';
-import { events } from '../core/events.js?v=10';
+import { $, $$, on } from '../core/dom.js?v=11';
+import { store } from '../core/store.js?v=11';
+import { auth } from '../core/auth.js?v=11';
+import { crt } from '../core/crt.js?v=11';
+import { audio } from '../core/audio.js?v=11';
+import { bus, EV } from '../core/bus.js?v=11';
+import { wireSounds, headTools, wireNav, toast } from '../core/ui.js?v=11';
+import { pts, esc } from '../core/format.js?v=11';
+import { colonyById } from '../data/labels.js?v=11';
+import { checkDeath, hideDeathScreen } from '../modules/death.js?v=11';
+import { shownToasts } from '../core/notify.js?v=11';
+import { events } from '../core/events.js?v=11';
 
-import { home } from '../sections/home.js?v=10';
-import { profile } from '../sections/profile.js?v=10';
-import { roster } from '../sections/roster.js?v=10';
-import { search } from '../sections/search.js?v=10';
-import { shop } from '../sections/shop.js?v=10';
-import { rules } from '../sections/rules.js?v=10';
-import { notices } from '../sections/notices.js?v=10';
-import { adminGate } from '../sections/admin-gate.js?v=10';
+import { home } from '../sections/home.js?v=11';
+import { profile } from '../sections/profile.js?v=11';
+import { roster } from '../sections/roster.js?v=11';
+import { search } from '../sections/search.js?v=11';
+import { shop } from '../sections/shop.js?v=11';
+import { rules } from '../sections/rules.js?v=11';
+import { notices } from '../sections/notices.js?v=11';
+import { adminGate } from '../sections/admin-gate.js?v=11';
 
 crt.init();
 wireSounds();
@@ -161,7 +161,7 @@ $$('.navitem').forEach((btn) => on(btn, 'click', () => {
   renderView(btn.dataset.view);
 }));
 
-on($('#navToggle'), 'click', () => $('#nav').classList.toggle('is-open'));
+wireNav();   // кнопка меню, затемнение и закрытие касанием мимо
 
 // Переходы из блоков («все →»)
 on(document, 'click', (e) => {

@@ -10,8 +10,8 @@
  * доходят до участника сами — с любого устройства.
  */
 
-import { bus, EV } from './bus.js?v=10';
-import { api } from './api.js?v=10';
+import { bus, EV } from './bus.js?v=11';
+import { api } from './api.js?v=11';
 
 const EMPTY = {
   auth: null,

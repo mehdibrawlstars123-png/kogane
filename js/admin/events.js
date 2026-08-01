@@ -5,13 +5,13 @@
  * музыка события, участникам приходит уведомление. Идёт до остановки.
  */
 
-import { $, $$, on } from '../core/dom.js?v=10';
-import { store } from '../core/store.js?v=10';
-import { audio } from '../core/audio.js?v=10';
-import { events, EVENTS } from '../core/events.js?v=10';
-import { music, youtubeId } from '../core/music.js?v=10';
-import { toast, modal } from '../core/ui.js?v=10';
-import { dt, esc } from '../core/format.js?v=10';
+import { $, $$, on } from '../core/dom.js?v=11';
+import { store } from '../core/store.js?v=11';
+import { audio } from '../core/audio.js?v=11';
+import { events, EVENTS } from '../core/events.js?v=11';
+import { music, youtubeId } from '../core/music.js?v=11';
+import { toast, modal } from '../core/ui.js?v=11';
+import { dt, esc } from '../core/format.js?v=11';
 
 /* Что показывать на карточке каждого события */
 const CARDS = [

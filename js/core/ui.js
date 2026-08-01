@@ -2,12 +2,12 @@
  * UI — тосты, модальные окна, подтверждения, общие фрагменты разметки.
  */
 
-import { $, create, lockScroll, unlockScroll } from './dom.js?v=10';
-import { sprite } from './sprites.js?v=10';
-import { audio } from './audio.js?v=10';
-import { NOTICE_TYPES } from '../data/labels.js?v=10';
-import { type } from './typewriter.js?v=10';
-import { esc } from './format.js?v=10';
+import { $, create, lockScroll, unlockScroll } from './dom.js?v=11';
+import { sprite } from './sprites.js?v=11';
+import { audio } from './audio.js?v=11';
+import { NOTICE_TYPES } from '../data/labels.js?v=11';
+import { type } from './typewriter.js?v=11';
+import { esc } from './format.js?v=11';
 
 /* =================== Тосты уведомлений =================== */
 
@@ -249,4 +249,45 @@ export function headTools({ onLogout } = {}) {
 
   wrap.append(volumeControl(), exit);
   return wrap;
+}
+
+
+/* =================== Выдвижное меню на телефоне =================== */
+
+/**
+ * Кнопка меню, затемнение и закрытие касанием мимо.
+ *
+ * Раньше меню на телефоне закрывалось только повторным нажатием кнопки:
+ * палец мимо списка ничего не делал, и участник оставался с открытым меню
+ * поверх раздела. Затемнение ловит такое касание, Esc — клавиатуру.
+ */
+export function wireNav() {
+  const nav = document.getElementById('nav');
+  const toggle = document.getElementById('navToggle');
+  const body = document.querySelector('.sys-body');
+  if (!nav || !toggle || !body) return;
+
+  const veil = create('div', { class: 'nav-veil' });
+  veil.setAttribute('aria-hidden', 'true');
+  body.appendChild(veil);
+
+  const set = (open) => {
+    nav.classList.toggle('is-open', open);
+    veil.classList.toggle('is-open', open);
+    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+  };
+
+  toggle.addEventListener('click', () => set(!nav.classList.contains('is-open')));
+  veil.addEventListener('click', () => set(false));
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && nav.classList.contains('is-open')) set(false);
+  });
+
+  // Выбрали раздел — меню уходит само
+  nav.addEventListener('click', (e) => {
+    if (e.target.closest('.navitem')) set(false);
+  });
+
+  return { close: () => set(false) };
 }

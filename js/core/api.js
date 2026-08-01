@@ -5,7 +5,7 @@
  * Ошибки приходят с понятным русским текстом из ответа сервера.
  */
 
-import { storage } from '../utils/storage.js?v=10';
+import { storage } from '../utils/storage.js?v=11';
 
 const TOKEN = 'token';
 

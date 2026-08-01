@@ -3,12 +3,12 @@
  * Используется в таблице, поиске и админке.
  */
 
-import { participantIcon, sprite } from '../core/sprites.js?v=10';
-import { esc, pts, highlight, dt } from '../core/format.js?v=10';
-import { colonyById, levelById, STATUSES, JP } from '../data/labels.js?v=10';
-import { store } from '../core/store.js?v=10';
-import { modal } from '../core/ui.js?v=10';
-import { APPLICATION_SCHEMA } from '../data/seed.js?v=10';
+import { participantIcon, sprite } from '../core/sprites.js?v=11';
+import { esc, pts, highlight, dt } from '../core/format.js?v=11';
+import { colonyById, levelById, STATUSES, JP } from '../data/labels.js?v=11';
+import { store } from '../core/store.js?v=11';
+import { modal } from '../core/ui.js?v=11';
+import { APPLICATION_SCHEMA } from '../data/seed.js?v=11';
 
 /** Строка таблицы участников — композиция как на кадре аниме */
 export function rosterRow(p, { index = 0, me = null, query = '' } = {}) {

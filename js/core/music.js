@@ -9,7 +9,7 @@
  * на таймер браузера, ритм спотыкается на каждой перерисовке.
  */
 
-import { audioNode, audio } from './audio.js?v=10';
+import { audioNode, audio } from './audio.js?v=11';
 
 const N = {
   D1: 36.71, G1: 49.00, A1: 55.00,

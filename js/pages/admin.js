@@ -2,22 +2,22 @@
  * Панель распорядителя игры — оркестратор разделов админки.
  */
 
-import { $, $$, on } from '../core/dom.js?v=10';
-import { store } from '../core/store.js?v=10';
-import { auth } from '../core/auth.js?v=10';
-import { crt } from '../core/crt.js?v=10';
-import { audio } from '../core/audio.js?v=10';
-import { bus, EV } from '../core/bus.js?v=10';
-import { wireSounds, headTools } from '../core/ui.js?v=10';
-import { events } from '../core/events.js?v=10';
+import { $, $$, on } from '../core/dom.js?v=11';
+import { store } from '../core/store.js?v=11';
+import { auth } from '../core/auth.js?v=11';
+import { crt } from '../core/crt.js?v=11';
+import { audio } from '../core/audio.js?v=11';
+import { bus, EV } from '../core/bus.js?v=11';
+import { wireSounds, headTools, wireNav } from '../core/ui.js?v=11';
+import { events } from '../core/events.js?v=11';
 
-import { dash } from '../admin/dash.js?v=10';
-import { applications } from '../admin/applications.js?v=10';
-import { participants } from '../admin/participants.js?v=10';
-import { rulesAdmin, noticesAdmin, broadcastAdmin } from '../admin/content.js?v=10';
-import { migrationAdmin, logsAdmin, baseAdmin } from '../admin/migration.js?v=10';
-import { eventsAdmin } from '../admin/events.js?v=10';
-import { adminsAdmin } from '../admin/admins.js?v=10';
+import { dash } from '../admin/dash.js?v=11';
+import { applications } from '../admin/applications.js?v=11';
+import { participants } from '../admin/participants.js?v=11';
+import { rulesAdmin, noticesAdmin, broadcastAdmin } from '../admin/content.js?v=11';
+import { migrationAdmin, logsAdmin, baseAdmin } from '../admin/migration.js?v=11';
+import { eventsAdmin } from '../admin/events.js?v=11';
+import { adminsAdmin } from '../admin/admins.js?v=11';
 
 crt.init();
 wireSounds();
@@ -94,7 +94,7 @@ $$('.navitem[data-panel]').forEach((btn) => on(btn, 'click', () => {
   go(btn.dataset.panel);
 }));
 
-on($('#navToggle'), 'click', () => $('#nav').classList.toggle('is-open'));
+wireNav();   // кнопка меню, затемнение и закрытие касанием мимо
 on($('#toSystem'), 'click', () => crt.wipeTo('system.html'));
 
 on(window, 'hashchange', () => {

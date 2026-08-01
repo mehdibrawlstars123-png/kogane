@@ -190,7 +190,7 @@
     { path: 'js/modules/connect.js',   marker: '__koganeConnect',        why: 'обработчик кнопки «Продолжить»' },
     { path: 'js/pages/auth.js',        marker: 'function regStep',       why: 'пошаговая регистрация' },
     { path: 'js/core/store.js',        marker: 'startPolling',           why: 'связь с сервером' },
-    { path: 'css/main.css',            marker: 'variables.css?v=10',      why: 'версии стилей' },
+    { path: 'css/main.css',            marker: 'variables.css?v=11',      why: 'версии стилей' },
     { path: 'pages/system.html' },
     { path: 'pages/application.html' },
     { path: 'pages/pending.html' },
@@ -275,7 +275,7 @@
     add(supports ? 'ok' : 'bad', 'Браузер поддерживает ES-модули',
       supports ? 'да' : 'НЕТ — браузер слишком старый, система не запустится');
 
-    import('./js/core/store.js?v=10&diag=' + Date.now())
+    import('./js/core/store.js?v=11&diag=' + Date.now())
       .then(function (m) {
         add('ok', 'Загрузка ядра store.js', 'модуль выполнился');
         // init() запрашивает состояние у сервера, поэтому ждём ответа
@@ -290,7 +290,7 @@
           });
       })
       .then(function () {
-        return import('./js/modules/connect.js?v=10&diag=' + Date.now());
+        return import('./js/modules/connect.js?v=11&diag=' + Date.now());
       })
       .then(function (m) {
         add(typeof m.connectSequence === 'function' ? 'ok' : 'bad',
@@ -315,7 +315,7 @@
     // такого правила экран подключения висел поверх формы входа.
     var link = document.createElement('link');
     link.rel = 'stylesheet';
-    link.href = 'css/main.css?v=10&diag=' + Date.now();
+    link.href = 'css/main.css?v=11&diag=' + Date.now();
 
     link.onload = function () {
       var probe = document.createElement('div');
@@ -344,27 +344,45 @@
     document.head.appendChild(link);
   }
 
-  /* ============ 5. Внешние ресурсы ============ */
+  /* ============ 5. Шрифт интерфейса ============ */
+  // Шрифт лежит рядом с сайтом, внешних адресов у страницы больше нет:
+  // проверяем свой файл, а не доступность Google.
   function checkFonts(done) {
-    section('ВНЕШНИЕ РЕСУРСЫ');
-    var t0 = Date.now();
-    var timer = setTimeout(function () {
-      add('bad', 'Google Fonts не отвечает',
-        'дольше 6 секунд — шрифт блокирует запуск скриптов; страница может «зависать»');
-      done();
-      done = function () {};
-    }, 6000);
+    section('ШРИФТ ИНТЕРФЕЙСА');
 
-    fetch('https://fonts.googleapis.com/css2?family=DotGothic16&display=swap', { mode: 'no-cors' })
+    var чужие = [];
+    try {
+      чужие = performance.getEntriesByType('resource')
+        .filter(function (r) { return r.name.indexOf(location.origin) !== 0; })
+        .map(function (r) { try { return new URL(r.name).host; } catch (e) { return r.name; } });
+    } catch (e) { /* старый браузер — не беда */ }
+
+    var внешних = чужие.filter(function (h, i) { return чужие.indexOf(h) === i; });
+    add(внешних.length ? 'warn' : 'ok', 'Запросы на чужие адреса',
+      внешних.length
+        ? внешних.join(', ') + ' — из стран с блокировками страница может ждать ответа'
+        : 'нет — сайт работает из любой страны без VPN');
+
+    var t0 = Date.now();
+    fetch('assets/fonts/dotgothic16-subset.woff2', { cache: 'no-store' })
+      .then(function (r) {
+        if (!r.ok) throw new Error('код ' + r.status);
+        return r.blob();
+      })
+      .then(function (b) {
+        add('ok', 'Файл шрифта отдаётся',
+          Math.round(b.size / 1024) + ' КБ за ' + (Date.now() - t0) + ' мс');
+        return (document.fonts && document.fonts.ready) || Promise.resolve();
+      })
       .then(function () {
-        clearTimeout(timer);
-        add('ok', 'Google Fonts доступен', (Date.now() - t0) + ' мс');
+        var ok = document.fonts && document.fonts.check('16px DotGothic16');
+        add(ok ? 'ok' : 'warn', 'Шрифт применён',
+          ok ? 'да' : 'нет — надписи рисуются системным шрифтом, работе не мешает');
         done();
       })
       .catch(function (e) {
-        clearTimeout(timer);
-        add('warn', 'Google Fonts недоступен',
-          e.message + ' — шрифт заменится системным, но сайт работать должен');
+        add('warn', 'Файл шрифта не получен',
+          e.message + ' — надписи будут системным шрифтом, на работу не влияет');
         done();
       });
   }

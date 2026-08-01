@@ -3,12 +3,12 @@
  * Экран мерцает → появляется Коганэ → большой череп → «ВЫ ПОГИБЛИ».
  */
 
-import { create, lockScroll } from '../core/dom.js?v=10';
-import { kogane, bigSkull } from '../core/sprites.js?v=10';
-import { audio } from '../core/audio.js?v=10';
-import { type, wait } from '../core/typewriter.js?v=10';
-import { auth } from '../core/auth.js?v=10';
-import { crt } from '../core/crt.js?v=10';
+import { create, lockScroll } from '../core/dom.js?v=11';
+import { kogane, bigSkull } from '../core/sprites.js?v=11';
+import { audio } from '../core/audio.js?v=11';
+import { type, wait } from '../core/typewriter.js?v=11';
+import { auth } from '../core/auth.js?v=11';
+import { crt } from '../core/crt.js?v=11';
 
 let shown = false;
 let node = null;

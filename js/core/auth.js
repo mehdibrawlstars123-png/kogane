@@ -5,10 +5,10 @@
  * сессии, а текущий участник берётся из снимка состояния.
  */
 
-import { store } from './store.js?v=10';
-import { api } from './api.js?v=10';
-import { bus, EV } from './bus.js?v=10';
-import { trace } from './trace.js?v=10';
+import { store } from './store.js?v=11';
+import { api } from './api.js?v=11';
+import { bus, EV } from './bus.js?v=11';
+import { trace } from './trace.js?v=11';
 
 export const auth = {
   /** Текущий участник из снимка состояния */

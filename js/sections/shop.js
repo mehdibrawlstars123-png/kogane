@@ -3,14 +3,14 @@
  * Только заранее созданные правила. Своё правило игрок написать не может.
  */
 
-import { $, $$, on } from '../core/dom.js?v=10';
-import { store } from '../core/store.js?v=10';
-import { esc, pts } from '../core/format.js?v=10';
-import { JP } from '../data/labels.js?v=10';
-import { modal, toast } from '../core/ui.js?v=10';
-import { audio } from '../core/audio.js?v=10';
-import { crt } from '../core/crt.js?v=10';
-import { sprite } from '../core/sprites.js?v=10';
+import { $, $$, on } from '../core/dom.js?v=11';
+import { store } from '../core/store.js?v=11';
+import { esc, pts } from '../core/format.js?v=11';
+import { JP } from '../data/labels.js?v=11';
+import { modal, toast } from '../core/ui.js?v=11';
+import { audio } from '../core/audio.js?v=11';
+import { crt } from '../core/crt.js?v=11';
+import { sprite } from '../core/sprites.js?v=11';
 
 let cat = 'all';
 

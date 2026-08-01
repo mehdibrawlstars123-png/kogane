@@ -3,19 +3,19 @@
  * Слушает изменения базы — решение админа из другой вкладки приходит сразу.
  */
 
-import { $, on } from '../core/dom.js?v=10';
-import { store } from '../core/store.js?v=10';
-import { auth } from '../core/auth.js?v=10';
-import { crt } from '../core/crt.js?v=10';
-import { audio } from '../core/audio.js?v=10';
-import { wireSounds, headTools, toast } from '../core/ui.js?v=10';
-import { bus, EV } from '../core/bus.js?v=10';
-import { esc, dt } from '../core/format.js?v=10';
-import { APPLICATION_SCHEMA } from '../data/seed.js?v=10';
-import { levelById, COLONIES } from '../data/labels.js?v=10';
-import { kogane } from '../core/sprites.js?v=10';
-import { wait } from '../core/typewriter.js?v=10';
-import { events } from '../core/events.js?v=10';
+import { $, on } from '../core/dom.js?v=11';
+import { store } from '../core/store.js?v=11';
+import { auth } from '../core/auth.js?v=11';
+import { crt } from '../core/crt.js?v=11';
+import { audio } from '../core/audio.js?v=11';
+import { wireSounds, headTools, toast } from '../core/ui.js?v=11';
+import { bus, EV } from '../core/bus.js?v=11';
+import { esc, dt } from '../core/format.js?v=11';
+import { APPLICATION_SCHEMA } from '../data/seed.js?v=11';
+import { levelById, COLONIES } from '../data/labels.js?v=11';
+import { kogane } from '../core/sprites.js?v=11';
+import { wait } from '../core/typewriter.js?v=11';
+import { events } from '../core/events.js?v=11';
 
 crt.init();
 wireSounds();

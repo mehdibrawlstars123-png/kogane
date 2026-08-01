@@ -8,10 +8,10 @@
  * Модуль подключается на всех страницах и следит за состоянием сам.
  */
 
-import { store } from './store.js?v=10';
-import { bus, EV } from './bus.js?v=10';
-import { music } from './music.js?v=10';
-import { audio } from './audio.js?v=10';
+import { store } from './store.js?v=11';
+import { bus, EV } from './bus.js?v=11';
+import { music } from './music.js?v=11';
+import { audio } from './audio.js?v=11';
 
 export const EVENTS = {
   sukuna: {
@@ -68,7 +68,10 @@ function fxMarkup(id) {
          + '<div class="evfx__seam"></div>'
          + '<div class="evfx__layer evfx__flash"></div>';
   }
-  return '<div class="evfx__layer evfx__mist"></div>' + lamps(18);
+  // На телефоне фонарей меньше: восемнадцать движущихся точек заметно
+  // греют слабые устройства, а на узком экране они всё равно сливаются
+  return '<div class="evfx__layer evfx__mist"></div>'
+       + lamps(window.innerWidth < 640 ? 9 : 18);
 }
 
 /** Объявление о начале — показывается один раз, тем, кто это застал */
