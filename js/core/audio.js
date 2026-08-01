@@ -142,9 +142,34 @@ function stopHum() {
   humNodes = null;
 }
 
+/* ---------------- Доступ для музыки ивентов ---------------- */
+
+/**
+ * Контекст и общий регулятор громкости для модуля music.js.
+ * Возвращает null, если звук выключен или контекст ещё не создан —
+ * тогда музыка просто не заводится.
+ */
+export function audioNode() {
+  const ac = ensure();
+  if (!ac || !master) return null;
+  return { ctx: ac, master };
+}
+
+// Кому сообщить, что звук выключили: музыка ивента должна замолчать,
+// а не играть в тишине, занимая процессор. И наоборот — когда звук
+// вернули, музыка идущего события должна зазвучать снова.
+const muteHooks = new Set();
+const unmuteHooks = new Set();
+
 /* ---------------- Публичный интерфейс ---------------- */
 
 export const audio = {
+  /** Подписка на выключение звука */
+  onMute(fn) { muteHooks.add(fn); return () => muteHooks.delete(fn); },
+
+  /** Подписка на возврат звука */
+  onUnmute(fn) { unmuteHooks.add(fn); return () => unmuteHooks.delete(fn); },
+
   /** Включён ли звук (громкость больше нуля) */
   get enabled() { return volume > 0; },
 
@@ -155,11 +180,13 @@ export const audio = {
   get ready() { return unlocked; },
 
   setVolume(v) {
+    const was = volume;
     volume = Math.min(1, Math.max(0, Number(v) || 0));
     storage.set('volume', volume);
 
     if (volume === 0) {
       stopHum();
+      muteHooks.forEach((fn) => { try { fn(); } catch { /* подписчик упал — не наша забота */ } });
       if (master) master.gain.value = 0;
       return volume;
     }
@@ -167,6 +194,9 @@ export const audio = {
     const ac = ensure();
     if (ac && master) master.gain.value = volume;
     if (unlocked) startHum();
+    if (was === 0) {
+      unmuteHooks.forEach((fn) => { try { fn(); } catch { /* подписчик упал — не наша забота */ } });
+    }
     return volume;
   },
 

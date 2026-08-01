@@ -158,6 +158,8 @@ def build_state(session: OrmSession, user: Optional[User]) -> dict:
         "auth": user.public(full=True) if user else None,
         "migration": setting(session, "migration"),
         "security": {"codeChanged": bool(security.get("codeChanged"))},
+        # Ивент виден всем, включая экран входа: оформление меняется у каждого
+        "event": setting(session, "event") or {"id": None},
         "baseRules": [r.public() for r in session.scalars(
             select(BaseRule).order_by(BaseRule.sort)).all()],
         "shopRules": [], "ruleHistory": [], "participants": [],
@@ -184,6 +186,8 @@ def build_state(session: OrmSession, user: Optional[User]) -> dict:
         # отсюда, а не пишет PostgreSQL вслепую.
         state["storage"] = "SQLite (локально)" if IS_SQLITE else "PostgreSQL"
         state["users"] = [u.public(full=True) for u in session.scalars(select(User)).all()]
+        state["admins"] = [u.public(full=True) for u in session.scalars(
+            select(User).where(User.role == "admin").order_by(User.created_at)).all()]
         state["logs"] = [l.public() for l in session.scalars(
             select(LogEntry).order_by(LogEntry.ts.desc()).limit(300)).all()]
         # Демо-записи считать отдельно не нужно: они уже лежат
@@ -302,6 +306,23 @@ class MigrationIn(BaseModel):
     note: str = ""
 
 
+class EventIn(BaseModel):
+    id: str
+
+
+class AdminIn(BaseModel):
+    email: str
+    password: str
+    code: str
+    name: str = ""
+
+
+class AdminPatch(BaseModel):
+    name: Optional[str] = None
+    password: Optional[str] = None
+    code: Optional[str] = None
+
+
 class SecurityIn(BaseModel):
     code: Optional[str] = None
     password: Optional[str] = None
@@ -361,14 +382,18 @@ def login(body: Credentials, session: OrmSession = Depends(get_session)):
 @router.post("/auth/admin")
 def login_admin(body: AdminCredentials, session: OrmSession = Depends(get_session)):
     security = setting(session, "security")
+    user = session.scalar(select(User).where(User.email.ilike(body.email.strip())))
 
-    if not verify_secret(body.code, security.get("codeHash", "")):
+    # Код проверяется первым и по той записи, чью почту ввели: у каждого
+    # распорядителя он свой. Общий код системы принимается только у записей
+    # без личного — так старая учётная запись продолжает работать.
+    expected = (user.code_hash if user and user.code_hash else security.get("codeHash", ""))
+    if not verify_secret(body.code, expected):
         add_log(session, body.email or "—", "code-denied",
                 "Неверный секретный код администрации.", "danger")
         session.commit()
         raise HTTPException(403, "Секретный код отклонён системой")
 
-    user = session.scalar(select(User).where(User.email.ilike(body.email.strip())))
     if not user or user.role != "admin" or not verify_secret(body.password, user.pass_hash):
         add_log(session, body.email or "—", "login-denied", "Отказ входа в администрацию.", "warn")
         session.commit()

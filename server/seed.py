@@ -107,6 +107,49 @@ DEMO_ROSTER = [
 ]
 
 
+# ==================== Учётные записи распорядителей ====================
+#
+# Вход в панель — почта, пароль и СВОЙ секретный код у каждой записи.
+# Пароли и коды хранятся только хешами: посмотреть их в базе нельзя,
+# поэтому этот список — единственное место, где они записаны открыто.
+# Смените их в панели: «Распорядители» → строка записи.
+#
+# Первая запись — общесистемная: её почта, пароль и код берутся
+# из переменных окружения ADMIN_EMAIL / ADMIN_PASSWORD / ADMIN_CODE.
+
+ADMIN_ACCOUNTS = [
+    {"id": "u-admin",    "email": DEFAULT_ADMIN_EMAIL,   "password": DEFAULT_ADMIN_PASSWORD,
+     "code": DEFAULT_ADMIN_CODE, "name": "Распорядитель игры",  "nameJp": "主催者"},
+
+    {"id": "u-admin-01", "email": "vcsnoj@gmail.com",    "password": "Bl1nchik",
+     "code": "Zalupa123",        "name": "Bl1nchik",            "nameJp": "運営"},
+
+    {"id": "u-admin-02", "email": "kogane02@kogane.jp",  "password": "Sukuna-1000",
+     "code": "KOGANE-02",        "name": "Смотритель Сукуны",   "nameJp": "宿儺番"},
+
+    {"id": "u-admin-03", "email": "kogane03@kogane.jp",  "password": "Rikugan-06",
+     "code": "KOGANE-03",        "name": "Смотритель Шести Глаз", "nameJp": "六眼番"},
+
+    {"id": "u-admin-04", "email": "kogane04@kogane.jp",  "password": "Hyakki-100",
+     "code": "KOGANE-04",        "name": "Смотритель Парада",   "nameJp": "百鬼番"},
+
+    {"id": "u-admin-05", "email": "kogane05@kogane.jp",  "password": "Tengen-19",
+     "code": "KOGANE-05",        "name": "Голос Тэнгэна",       "nameJp": "天元代弁"},
+
+    {"id": "u-admin-06", "email": "kogane06@kogane.jp",  "password": "Barrier-77",
+     "code": "KOGANE-06",        "name": "Хранитель барьеров",  "nameJp": "結界管理"},
+
+    {"id": "u-admin-07", "email": "kogane07@kogane.jp",  "password": "Kessen-42",
+     "code": "KOGANE-07",        "name": "Судья колоний",       "nameJp": "泳者審判"},
+
+    {"id": "u-admin-08", "email": "kogane08@kogane.jp",  "password": "Kiroku-33",
+     "code": "KOGANE-08",        "name": "Летописец",           "nameJp": "記録係"},
+
+    {"id": "u-admin-09", "email": "kogane09@kogane.jp",  "password": "Kisoku-88",
+     "code": "KOGANE-09",        "name": "Хранитель свода",     "nameJp": "規則番"},
+]
+
+
 def seed(session) -> None:
     """Наполняет пустую базу. Повторный вызов безопасен."""
     created = False
@@ -124,16 +167,22 @@ def seed(session) -> None:
             ))
         created = True
 
-    if not session.scalar(select(User).where(User.role == "admin")):
+    # Учётные записи распорядителей. Добавляются по одной: если почта уже
+    # заведена, запись не трогается — пароль и код, изменённые в панели,
+    # переживают перезапуск сервера.
+    for acc in ADMIN_ACCOUNTS:
+        if session.scalar(select(User).where(User.email == acc["email"])):
+            continue
         session.add(User(
-            id="u-admin",
-            email=DEFAULT_ADMIN_EMAIL,
-            pass_hash=hash_secret(DEFAULT_ADMIN_PASSWORD),
+            id=acc["id"],
+            email=acc["email"],
+            pass_hash=hash_secret(acc["password"]),
+            code_hash=hash_secret(acc["code"]) if acc.get("code") else None,
             role="admin",
             state="approved",
             created_at=now_ms(),
             character={
-                "name": "Распорядитель игры", "nameJp": "主催者", "level": "gs",
+                "name": acc["name"], "nameJp": acc.get("nameJp", "主催者"), "level": "gs",
                 "points": 0, "rules": 0, "colony": "tokyo1", "status": "out",
             },
             owned_rules=[],

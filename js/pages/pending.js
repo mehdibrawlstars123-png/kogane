@@ -15,11 +15,13 @@ import { APPLICATION_SCHEMA } from '../data/seed.js?v=10';
 import { levelById, COLONIES } from '../data/labels.js?v=10';
 import { kogane } from '../core/sprites.js?v=10';
 import { wait } from '../core/typewriter.js?v=10';
+import { events } from '../core/events.js?v=10';
 
 crt.init();
 wireSounds();
 
 await store.init();
+events.init();   // оформление идущего ивента
 store.startPolling(4000);
 
 let user = auth.guard({ need: 'auth' });

@@ -14,12 +14,14 @@ import { APPLICATION_SCHEMA } from '../data/seed.js?v=10';
 import { levelOptions, COLONIES } from '../data/labels.js?v=10';
 import { storage } from '../utils/storage.js?v=10';
 import { wait } from '../core/typewriter.js?v=10';
+import { events } from '../core/events.js?v=10';
 import { debounce } from '../utils/helpers.js?v=10';
 
 crt.init();
 wireSounds();
 
 await store.init();
+events.init();   // оформление идущего ивента
 
 const user = auth.guard({ need: 'auth' });
 if (!user) throw new Error('нет доступа');

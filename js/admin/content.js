@@ -182,6 +182,13 @@ export const noticesAdmin = {
         <span class="sec-head__jp jp">通知作成</span>
       </div>
 
+      <p class="fs-xxs muted mono mb-3">
+        Здесь — одно уведомление нужного типа: всем сразу или одному участнику.
+        Тип задаёт значок и оформление записи (начисление очков, смена колонии,
+        выбывание и так далее), как будто его выдала сама система.
+        Для длинного текста без типа события есть раздел «Рассылка».
+      </p>
+
       <div class="cols cols--2">
         <div class="panel panel--framed">
           <div class="panel__head"><span class="panel__title">Новое уведомление</span><span class="panel__jp jp">作成</span></div>
@@ -269,6 +276,13 @@ export const broadcastAdmin = {
         <span class="sec-head__title">Рассылка сообщений</span>
         <span class="sec-head__jp jp">一斉通知</span>
       </div>
+
+      <p class="fs-xxs muted mono mb-3">
+        Здесь — обращение к группе: всем, только тем, кто в игре, или одной колонии.
+        Тип всегда один и тот же — «сообщение системы», зато есть готовые шаблоны
+        и проверка текста на себе. Чтобы отправить событие определённого типа
+        одному участнику, откройте «Создание уведомлений».
+      </p>
 
       <div class="panel panel--framed">
         <div class="panel__head"><span class="panel__title">Сообщение от системы Коганэ</span><span class="panel__jp jp">通達</span></div>

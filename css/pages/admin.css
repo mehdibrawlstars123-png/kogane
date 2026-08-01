@@ -166,8 +166,24 @@
 .logline__act { text-transform: uppercase; letter-spacing: 0.1em; }
 .logline--danger { color: var(--danger-ink); }
 
+/* Строка учётной записи распорядителя: время, имя, почта, кнопки */
+.logline--acct {
+  grid-template-columns: 118px minmax(110px, 1fr) minmax(0, 1.5fr) auto;
+  align-items: center;
+  font-size: 11px;
+  padding: 5px var(--sp-2);
+}
+.logline__tools {
+  display: flex;
+  gap: var(--sp-1);
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
 @media (max-width: 900px) {
   .editor { grid-template-columns: 1fr; }
   .editor__list { max-height: 240px; }
   .logline { grid-template-columns: 1fr; gap: 0; }
+  .logline--acct { grid-template-columns: 1fr; }
+  .logline__tools { justify-content: flex-start; }
 }

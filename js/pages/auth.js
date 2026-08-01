@@ -13,12 +13,14 @@ import { wireSounds, volumeControl } from '../core/ui.js?v=10';
 import { connectSequence } from '../modules/connect.js?v=10';
 import { storage } from '../utils/storage.js?v=10';
 import { trace } from '../core/trace.js?v=10';
+import { events } from '../core/events.js?v=10';
 
 crt.init();
 wireSounds();
 
 // Состояние приходит с сервера
 await store.init().catch(() => {});
+events.init();   // идущий ивент виден и на экране входа
 
 // Код первого входа задан на сервере (переменная окружения ADMIN_CODE).
 // Подсказка показывается, только пока код не сменили.

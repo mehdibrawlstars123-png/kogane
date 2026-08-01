@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from .db import Base, engine, SessionLocal, URL, IS_SQLITE
+from .db import Base, engine, SessionLocal, URL, IS_SQLITE, ensure_columns
 from .seed import seed
 from .api import router as api_router
 from .admin_api import router as admin_router
@@ -38,6 +38,7 @@ app.include_router(admin_router)
 @app.on_event("startup")
 def startup() -> None:
     Base.metadata.create_all(engine)
+    ensure_columns()          # колонки, появившиеся после первого запуска
     session = SessionLocal()
     try:
         seed(session)

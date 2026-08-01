@@ -9,12 +9,15 @@ import { crt } from '../core/crt.js?v=10';
 import { audio } from '../core/audio.js?v=10';
 import { bus, EV } from '../core/bus.js?v=10';
 import { wireSounds, headTools } from '../core/ui.js?v=10';
+import { events } from '../core/events.js?v=10';
 
 import { dash } from '../admin/dash.js?v=10';
 import { applications } from '../admin/applications.js?v=10';
 import { participants } from '../admin/participants.js?v=10';
 import { rulesAdmin, noticesAdmin, broadcastAdmin } from '../admin/content.js?v=10';
 import { migrationAdmin, logsAdmin, baseAdmin } from '../admin/migration.js?v=10';
+import { eventsAdmin } from '../admin/events.js?v=10';
+import { adminsAdmin } from '../admin/admins.js?v=10';
 
 crt.init();
 wireSounds();
@@ -25,6 +28,9 @@ store.startPolling(5000);
 const admin = auth.guard({ need: 'admin' });
 if (!admin) throw new Error('нет доступа');
 
+// Оформление идущего ивента — распорядитель видит его наравне со всеми
+events.init();
+
 const PANELS = {
   dash,
   applications,
@@ -33,6 +39,8 @@ const PANELS = {
   notices: noticesAdmin,
   broadcast: broadcastAdmin,
   migration: migrationAdmin,
+  events: eventsAdmin,
+  admins: adminsAdmin,
   logs: logsAdmin,
   base: baseAdmin,
 };

@@ -16,6 +16,8 @@ import { api } from './api.js?v=10';
 const EMPTY = {
   auth: null,
   migration: { number: 1, active: true, startedAt: Date.now(), endedAt: null, note: '' },
+  event: { id: null },
+  admins: [],
   security: { codeChanged: true },
   baseRules: [],
   shopRules: [],
@@ -141,6 +143,12 @@ export const store = {
 
   /** Где на самом деле лежат данные — сервер сообщает это распорядителю */
   storage() { return db.storage || 'PostgreSQL'; },
+
+  /** Идущий ивент: { id, title, jp, startedAt, startedBy } */
+  event() { return db.event || { id: null }; },
+
+  /** Учётные записи распорядителей (видит только распорядитель) */
+  admins() { return db.admins || []; },
 
   /** Записи реестра без аккаунта (демонстрационные) */
   npcs() { return (db.participants || []).filter((p) => p.isNpc); },
@@ -298,6 +306,36 @@ export const store = {
     const res = await api.post('/api/admin/npcs/clear');
     await this.refresh();
     return res.count;
+  },
+
+  /* ---------------- Ивенты ---------------- */
+
+  async startEvent(id) {
+    await api.post('/api/admin/event/start', { id });
+    return this.refresh();
+  },
+
+  async stopEvent() {
+    await api.post('/api/admin/event/stop');
+    return this.refresh();
+  },
+
+  /* ---------------- Учётные записи распорядителей ---------------- */
+
+  async addAdmin(data) {
+    const res = await api.post('/api/admin/admins', data);
+    await this.refresh();
+    return res;
+  },
+
+  async updateAdmin(id, data) {
+    await api.patch(`/api/admin/admins/${id}`, data);
+    return this.refresh();
+  },
+
+  async removeAdmin(id) {
+    await api.del(`/api/admin/admins/${id}`);
+    return this.refresh();
   },
 
   async resetSystem() {

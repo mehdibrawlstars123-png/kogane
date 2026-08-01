@@ -14,6 +14,7 @@ from .api import (
     COLONY_NAMES, LEVEL_NAMES, STATUS_NAMES, check,
     ApproveIn, RejectIn, PatchParticipant, PointsIn, RuleGrant, MassIn,
     ShopRuleIn, NoticeIn, BroadcastIn, MigrationIn, SecurityIn,
+    EventIn, AdminIn, AdminPatch,
 )
 from .models import (
     User, Npc, ShopRule, RuleHistory, Notification, LogEntry, Session as UserSession,
@@ -592,5 +593,167 @@ def reset_db(data=Depends(require_admin)):
         by="Распорядитель игры", colony=None,
     ))
     add_log(session, admin.email, "db-reset", "Система сброшена к начальному состоянию.", "danger")
+    session.commit()
+    return {"ok": True}
+
+
+# ==================== Ивенты ====================
+#
+# Ивент — общее для всех событие: у каждого участника меняется оформление
+# системы и включается своя музыка. Запускает только распорядитель,
+# идёт до тех пор, пока его не остановят.
+
+EVENTS = {
+    "sukuna": {
+        "title": "Сукуна в истинной форме",
+        "jp": "宿儺・真の姿",
+        "text": "Внутри барьера проявился Рёмэн Сукуна в истинном облике. "
+                "Показатели проклятой энергии вышли за пределы шкалы. "
+                "Система переведена в аварийное оформление.",
+    },
+    "duel": {
+        "title": "Сукуна против Годзё",
+        "jp": "宿儺 対 五条",
+        "text": "Зафиксировано столкновение двух особых уровней. "
+                "Барьер держит удар на пределе, изображение системы рвётся "
+                "между двумя источниками энергии.",
+    },
+    "parade": {
+        "title": "Парад тысячи духов",
+        "jp": "百鬼夜行",
+        "text": "Ночное шествие проклятий началось. "
+                "Тысячи огней движутся сквозь колонии. "
+                "Не покидайте укрытие до окончания парада.",
+    },
+}
+
+
+@router.post("/event/start")
+def start_event(body: EventIn, data=Depends(require_admin)):
+    admin, session = data
+    ev = EVENTS.get(body.id)
+    if not ev:
+        raise HTTPException(404, "Такого ивента нет")
+
+    save_setting(session, "event", {
+        "id": body.id,
+        "title": ev["title"],
+        "jp": ev["jp"],
+        "startedAt": now_ms(),
+        "startedBy": admin.email,
+    })
+    notify(session, "broadcast", ev["title"], ev["text"], "all")
+    add_log(session, admin.email, "event-start", f"Запущен ивент «{ev['title']}».", "warn")
+    session.commit()
+    return {"ok": True, "event": body.id}
+
+
+@router.post("/event/stop")
+def stop_event(data=Depends(require_admin)):
+    admin, session = data
+    current = setting(session, "event")
+    if not current.get("id"):
+        raise HTTPException(409, "Сейчас ивент не идёт")
+
+    save_setting(session, "event", {"id": None, "endedAt": now_ms()})
+    notify(session, "broadcast", "Событие завершено",
+           f"«{current.get('title', 'Событие')}» окончено. Система возвращена в обычный режим.", "all")
+    add_log(session, admin.email, "event-stop", f"Ивент «{current.get('title')}» остановлен.")
+    session.commit()
+    return {"ok": True}
+
+
+# ==================== Учётные записи распорядителей ====================
+
+@router.post("/admins")
+def create_admin(body: AdminIn, data=Depends(require_admin)):
+    admin, session = data
+
+    email = body.email.strip().lower()
+    if "@" not in email or len(email) < 5:
+        raise HTTPException(400, "Почта указана неверно")
+    if len(body.password) < 6:
+        raise HTTPException(400, "Пароль короче шести символов")
+    if len(body.code) < 4:
+        raise HTTPException(400, "Код короче четырёх символов")
+    if session.scalar(select(User).where(User.email == email)):
+        raise HTTPException(409, "Эта почта уже занята")
+
+    user = User(
+        id=new_id("u"),
+        email=email,
+        pass_hash=hash_secret(body.password),
+        code_hash=hash_secret(body.code),
+        role="admin",
+        state="approved",
+        created_at=now_ms(),
+        character={
+            "name": body.name.strip() or email, "nameJp": "主催者", "level": "gs",
+            "points": 0, "rules": 0, "colony": "tokyo1", "status": "out",
+        },
+        owned_rules=[],
+    )
+    session.add(user)
+    add_log(session, admin.email, "admin-create",
+            f"Заведена учётная запись распорядителя: {email}.", "warn")
+    session.commit()
+    return {"ok": True, "id": user.id}
+
+
+@router.patch("/admins/{uid}")
+def patch_admin(uid: str, body: AdminPatch, data=Depends(require_admin)):
+    admin, session = data
+    user = session.get(User, uid)
+    if not user or user.role != "admin":
+        raise HTTPException(404, "Учётная запись не найдена")
+
+    changes = []
+    if body.name is not None and body.name.strip():
+        char = dict(user.character or {})
+        char["name"] = body.name.strip()
+        user.character = char
+        changes.append("имя")
+
+    if body.password:
+        if len(body.password) < 6:
+            raise HTTPException(400, "Пароль короче шести символов")
+        user.pass_hash = hash_secret(body.password)
+        changes.append("пароль")
+        # Чужие открытые вкладки этой записи закрываются
+        for row in session.scalars(select(UserSession).where(UserSession.user_id == user.id)).all():
+            session.delete(row)
+
+    if body.code:
+        if len(body.code) < 4:
+            raise HTTPException(400, "Код короче четырёх символов")
+        user.code_hash = hash_secret(body.code)
+        changes.append("код")
+
+    add_log(session, admin.email, "admin-edit",
+            f"{user.email}: изменено — {', '.join(changes) or 'ничего'}.", "warn")
+    session.commit()
+    return {"ok": True}
+
+
+@router.delete("/admins/{uid}")
+def delete_admin(uid: str, data=Depends(require_admin)):
+    admin, session = data
+    user = session.get(User, uid)
+    if not user or user.role != "admin":
+        raise HTTPException(404, "Учётная запись не найдена")
+    if user.id == admin.id:
+        raise HTTPException(409, "Нельзя удалить запись, под которой вы вошли")
+
+    total = len(session.scalars(select(User).where(User.role == "admin")).all())
+    if total <= 1:
+        raise HTTPException(409, "Это последняя учётная запись распорядителя")
+
+    for row in session.scalars(select(UserSession).where(UserSession.user_id == user.id)).all():
+        session.delete(row)
+
+    email = user.email
+    session.delete(user)
+    add_log(session, admin.email, "admin-delete",
+            f"Удалена учётная запись распорядителя: {email}.", "danger")
     session.commit()
     return {"ok": True}

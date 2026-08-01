@@ -51,6 +51,32 @@ SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False
 Base = declarative_base()
 
 
+def ensure_columns() -> None:
+    """
+    Досоздаёт колонки, появившиеся после первого запуска.
+
+    create_all() умеет создавать недостающие таблицы, но не колонки:
+    на Railway база уже существует, и без этого шага сервер падал бы
+    на первом же запросе к новому полю.
+    """
+    from sqlalchemy import inspect, text
+
+    added = []
+    inspector = inspect(engine)
+    if "users" not in inspector.get_table_names():
+        return
+
+    have = {c["name"] for c in inspector.get_columns("users")}
+    # Собственный секретный код распорядителя: у каждого свой
+    if "code_hash" not in have:
+        added.append("users.code_hash")
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE users ADD COLUMN code_hash VARCHAR(255)"))
+
+    if added:
+        print(f"[kogane] columns added: {', '.join(added)}", flush=True)
+
+
 def get_session():
     """Зависимость FastAPI: сессия на один запрос."""
     session = SessionLocal()

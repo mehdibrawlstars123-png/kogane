@@ -12,6 +12,7 @@
 /* Effects */
 @import url("effects/crt.css?v=10");
 @import url("effects/glitch.css?v=10");
+@import url("effects/events.css?v=10");
 
 /* Layout */
 @import url("layout/screen.css?v=10");

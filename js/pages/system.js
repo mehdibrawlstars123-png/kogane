@@ -14,6 +14,7 @@ import { pts, esc } from '../core/format.js?v=10';
 import { colonyById } from '../data/labels.js?v=10';
 import { checkDeath, hideDeathScreen } from '../modules/death.js?v=10';
 import { shownToasts } from '../core/notify.js?v=10';
+import { events } from '../core/events.js?v=10';
 
 import { home } from '../sections/home.js?v=10';
 import { profile } from '../sections/profile.js?v=10';
@@ -29,6 +30,7 @@ wireSounds();
 
 // Состояние приходит с сервера, поэтому загрузка ожидается до отрисовки
 await store.init();
+events.init();   // оформление идущего ивента
 store.startPolling(4000);
 
 let user = auth.guard({ need: 'approved' });

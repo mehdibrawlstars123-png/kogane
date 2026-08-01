@@ -18,6 +18,11 @@ class User(Base):
     pass_hash = Column(String(255), nullable=False)
 
     role = Column(String(20), default="player", nullable=False)      # player | admin
+
+    # Личный секретный код распорядителя. У каждой учётной записи свой:
+    # так вход в панель нельзя передать, назвав только почту и пароль.
+    # Пусто — значит принимается общий код системы.
+    code_hash = Column(String(255))
     state = Column(String(20), default="registered", nullable=False)  # registered|applied|approved|rejected
 
     created_at = Column(BigInteger, nullable=False)
@@ -47,6 +52,9 @@ class User(Base):
             "character": self.character,
             "ownedRules": self.owned_rules or [],
         }
+        if self.role == "admin":
+            data["name"] = (self.character or {}).get("name") or self.email
+            data["ownCode"] = bool(self.code_hash)
         if not full:
             data.pop("rejectReason", None)
         return data
