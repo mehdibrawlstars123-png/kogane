@@ -245,10 +245,39 @@ def delete_user(uid: str, data=Depends(require_admin)):
         raise HTTPException(400, "Учётную запись распорядителя удалить нельзя")
 
     name = (user.character or {}).get("name", user.email)
+
+    # Открытые вкладки удалённого участника должны сразу перестать работать
+    for row in session.scalars(select(UserSession).where(UserSession.user_id == user.id)).all():
+        session.delete(row)
+
     session.delete(user)
-    add_log(session, admin.email, "delete-user", f"Аккаунт {name} удалён.", "danger")
+    add_log(session, admin.email, "delete-user",
+            f"Аккаунт {name} ({user.email}) удалён. Почта снова свободна.", "danger")
     session.commit()
     return {"ok": True}
+
+
+@router.post("/users/purge")
+def purge_users(data=Depends(require_admin)):
+    """
+    Удаляет все аккаунты участников: анкеты, очки, купленные правила.
+
+    В отличие от полного сброса, не трогает миграцию, свод правил, магазин,
+    уведомления и журнал — только сами аккаунты. Нужно, когда реестр
+    начинают с чистого листа или почта занята прежней регистрацией.
+    """
+    admin, session = data
+
+    players = session.scalars(select(User).where(User.role != "admin")).all()
+    for user in players:
+        for row in session.scalars(select(UserSession).where(UserSession.user_id == user.id)).all():
+            session.delete(row)
+        session.delete(user)
+
+    add_log(session, admin.email, "users-purge",
+            f"Удалены все аккаунты участников: {len(players)}. Почты снова свободны.", "danger")
+    session.commit()
+    return {"ok": True, "removed": len(players)}
 
 
 @router.post("/mass")

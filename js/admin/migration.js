@@ -340,6 +340,18 @@ export const baseAdmin = {
               таблицы и поиска — в игре они не участвуют.
             </p>
             <div class="danger-zone">
+              <div class="danger-zone__title">Очистка реестра <span class="jp">泳者削除</span></div>
+              <p class="danger-zone__text">
+                Удаляет все аккаунты участников: анкеты, очки, купленные правила.
+                Почты после этого снова свободны для регистрации. Свод правил,
+                магазин, миграция, журнал и учётные записи распорядителей остаются.
+              </p>
+              <button class="btn btn--sm btn--danger" type="button" id="dbPurge">
+                Удалить все аккаунты участников (${store.users().filter((u) => u.role !== 'admin').length})
+              </button>
+            </div>
+
+            <div class="danger-zone mt-4">
               <div class="danger-zone__title">Полный сброс <span class="jp">初期化</span></div>
               <p class="danger-zone__text">
                 Все аккаунты, анкеты, правила и журнал будут удалены. База вернётся
@@ -432,6 +444,34 @@ export const baseAdmin = {
       if (!await modal.confirm({ title: 'Очистка уведомлений', jp: '通知削除', text: 'Удалить всю историю уведомлений участников?', danger: true, okText: 'Очистить' })) return;
       try { await store.clearNotices(); }
       catch (err) { toast.err('Не удалось очистить', err.message); return; }
+      this.render(root, ctx);
+    });
+
+    on($('#dbPurge', root), 'click', async () => {
+      const сколько = store.users().filter((u) => u.role !== 'admin').length;
+      const ok = await modal.confirm({
+        title: 'Очистка реестра', jp: '泳者削除', danger: true,
+        text: `Будут удалены все аккаунты участников: ${сколько}. `
+            + 'Вместе с ними — анкеты, очки и купленные правила. '
+            + 'Почты снова станут свободными. Отменить нельзя.',
+        okText: 'Удалить всех',
+      });
+      if (!ok) return;
+
+      const слово = await modal.prompt({
+        title: 'Подтверждение очистки', jp: '確認',
+        label: 'Введите слово УДАЛИТЬ для подтверждения',
+      });
+      if (слово !== 'УДАЛИТЬ') { toast.err('Очистка отменена', 'Подтверждение не совпало.'); return; }
+
+      let removed = 0;
+      try {
+        const res = await store.purgeUsers();
+        removed = res.removed;
+      } catch (err) { toast.err('Не выполнено', err.message); return; }
+
+      crt.glitch($('.screen'), 500);
+      toast.ok('Реестр очищен', `Удалено аккаунтов: ${removed}`);
       this.render(root, ctx);
     });
 

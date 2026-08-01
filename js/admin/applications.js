@@ -80,6 +80,9 @@ export const applications = {
             </span>
             <span class="btn-row">
               ${u.application ? `<button class="btn btn--sm btn--ghost" type="button" data-view="${u.id}">Открыть</button>` : ''}
+              ${tab === 'all' ? `
+                <button class="btn btn--sm btn--bare" type="button" data-drop="${u.id}"
+                        style="color:var(--danger-ink)">Удалить аккаунт</button>` : ''}
               ${u.state === 'applied' ? `
                 <button class="btn btn--sm btn--primary" type="button" data-ok="${u.id}">Принять</button>
                 <button class="btn btn--sm btn--danger" type="button" data-no="${u.id}">Отклонить</button>` : ''}
@@ -89,6 +92,27 @@ export const applications = {
           tab === 'all' ? 'Аккаунтов участников ещё нет' : 'Анкет в этом состоянии нет'
         }</div>`}
       </div>`;
+
+    /* Удаление аккаунта: освобождает почту для повторной регистрации */
+    $$('[data-drop]', root).forEach((b) => on(b, 'click', async () => {
+      const u = store.users().find((x) => x.id === b.dataset.drop);
+      if (!u) return;
+
+      const ok = await modal.confirm({
+        title: 'Удалить аккаунт', jp: '削除', danger: true,
+        text: `Аккаунт ${u.email} будет удалён вместе с анкетой, очками и правилами. `
+            + 'Почта после этого снова свободна для регистрации. Отменить нельзя.',
+        okText: 'Удалить',
+      });
+      if (!ok) return;
+
+      try {
+        await store.deleteUser(u.id);
+      } catch (err) { toast.err('Не удалено', err.message); return; }
+
+      toast.ok('Аккаунт удалён', `${u.email} — почта свободна`);
+      refresh();
+    }));
 
     $$('[data-tab]', root).forEach((b) => on(b, 'click', () => {
       tab = b.dataset.tab;

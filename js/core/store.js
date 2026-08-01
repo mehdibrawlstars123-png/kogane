@@ -233,6 +233,13 @@ export const store = {
     return this.refresh();
   },
 
+  /** Удаляет все аккаунты участников, оставляя правила и настройки */
+  async purgeUsers() {
+    const res = await api.post('/api/admin/users/purge');
+    await this.refresh();
+    return res;
+  },
+
   async mass({ scope, action, amount = 0 }) {
     const res = await api.post('/api/admin/mass', { scope, action, amount });
     await this.refresh();
