@@ -136,13 +136,90 @@
   animation: ev-breathe 3.4s ease-in-out infinite;
 }
 
-/* ---- Столкновение: изображение рвётся между двумя источниками ---- */
+/* ---- Столкновение: экран поделён надвое ----
+   Левая половина — багровая сторона Сукуны, правая — голубая сторона Годзё.
+   Режим наложения color перекрашивает то, что под ним, сохраняя яркость:
+   надписи и цифры остаются читаемыми, меняется только цвет.               */
 
-.evfx--duel .evfx__side {
-  background:
-    linear-gradient(90deg, rgba(90, 190, 255, 0.30) 0%, transparent 38%),
-    linear-gradient(270deg, rgba(255, 70, 40, 0.32) 0%, transparent 38%);
+.evfx--duel .evfx__half {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 50%;
+  mix-blend-mode: color;
+}
+
+.evfx--duel .evfx__half--sukuna {
+  left: 0;
+  background: #ff2a12;
+  /* Рваный край по центру — граница не линейка, а место столкновения */
+  clip-path: polygon(
+    0 0, 98% 0, 96% 8%, 100% 17%, 95% 26%, 99% 35%, 94% 44%,
+    100% 53%, 95% 62%, 99% 71%, 94% 80%, 100% 89%, 96% 96%, 98% 100%, 0 100%
+  );
+  animation: ev-clash-l 2.6s ease-in-out infinite;
+}
+
+.evfx--duel .evfx__half--gojo {
+  right: 0;
+  background: #24b6ff;
+  clip-path: polygon(
+    2% 0, 100% 0, 100% 100%, 4% 100%, 2% 96%, 6% 89%,
+    0 80%, 5% 71%, 1% 62%, 6% 53%, 0 44%, 5% 35%, 1% 26%, 6% 17%, 2% 8%
+  );
+  animation: ev-clash-r 2.6s ease-in-out infinite;
+}
+
+/* Свечение поверх перекраски: жар слева, холод справа */
+.evfx--duel .evfx__glow {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 55%;
+  mix-blend-mode: screen;
+}
+
+.evfx--duel .evfx__glow--sukuna {
+  left: 0;
+  background: linear-gradient(90deg, rgba(255, 60, 20, 0.34) 0%, transparent 78%);
   animation: ev-breathe 2.1s ease-in-out infinite;
+}
+
+.evfx--duel .evfx__glow--gojo {
+  right: 0;
+  background: linear-gradient(270deg, rgba(80, 200, 255, 0.34) 0%, transparent 78%);
+  animation: ev-breathe 2.1s ease-in-out 1.05s infinite;
+}
+
+/* Шов посередине — там, где две техники упираются друг в друга */
+.evfx--duel .evfx__seam {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 3px;
+  transform: translateX(-50%);
+  background: linear-gradient(180deg,
+    transparent, rgba(255, 255, 255, 0.9) 12%, rgba(255, 255, 255, 0.35) 50%,
+    rgba(255, 255, 255, 0.9) 88%, transparent);
+  box-shadow: 0 0 18px 4px rgba(255, 255, 255, 0.5);
+  animation: ev-seam 0.9s ease-in-out infinite;
+}
+
+/* Половины дышат навстречу друг другу: перевес то у одной стороны, то у другой */
+@keyframes ev-clash-l {
+  0%, 100% { width: 50%; opacity: 0.85; }
+  50%      { width: 54%; opacity: 1; }
+}
+
+@keyframes ev-clash-r {
+  0%, 100% { width: 50%; opacity: 0.85; }
+  50%      { width: 46%; opacity: 0.9; }
+}
+
+@keyframes ev-seam {
+  0%, 100% { opacity: 0.55; transform: translateX(-50%) scaleX(1); }
+  50%      { opacity: 1;    transform: translateX(-50%) scaleX(2.2); }
 }
 
 .evfx--duel .evfx__flash {
@@ -266,10 +343,19 @@
   animation: ev-breathe 2.4s ease-in-out infinite;
 }
 
+/* Кнопка «включить музыку»: браузер не разрешает звук до первого нажатия */
+.ev-badge--play {
+  cursor: pointer;
+  background: transparent;
+  border-color: var(--phos);
+  animation: none;
+}
+.ev-badge--play:hover { background: rgba(255, 255, 255, 0.12); }
+
 /* Кому анимации мешают — остаётся только перекраска */
 @media (prefers-reduced-motion: reduce) {
-  .evfx__slash, .evfx__heat, .evfx__side, .evfx__flash,
-  .evfx__lamp, .evfx__mist, .ev-badge, .ev-shake {
+  .evfx__slash, .evfx__heat, .evfx__flash, .evfx__half, .evfx__glow,
+  .evfx__seam, .evfx__lamp, .evfx__mist, .ev-badge, .ev-shake {
     animation: none !important;
   }
   .evfx__hail { animation: ev-hail 5.4s linear forwards; }

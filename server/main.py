@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from .db import Base, engine, SessionLocal, URL, IS_SQLITE, ensure_columns
+from .db import Base, engine, SessionLocal, URL, IS_SQLITE, ensure_columns, deployed
 from .seed import seed
 from .api import router as api_router
 from .admin_api import router as admin_router
@@ -69,7 +69,12 @@ async def no_stale_files(request, call_next):
 @app.get("/api/health")
 def health():
     """Проверка живости для Railway."""
-    return {"ok": True, "database": "sqlite" if IS_SQLITE else "postgresql"}
+    return {
+        "ok": True,
+        "database": "sqlite" if IS_SQLITE else "postgresql",
+        # true — данные не переживут следующего развёртывания
+        "ephemeral": bool(IS_SQLITE and deployed()),
+    }
 
 
 # ==================== Статический интерфейс ====================

@@ -196,6 +196,17 @@ def seed(session) -> None:
         }))
         created = True
 
+    # Музыка событий. Ссылки открываются во встроенном проигрывателе YouTube —
+    # чужие записи в проект не копируются, воспроизводит их сам YouTube.
+    # kind: youtube (ссылка) | file (свой звуковой файл) | synth (тема системы)
+    if not session.get(Setting, "event_music"):
+        session.add(Setting(key="event_music", value={
+            "sukuna": {"kind": "youtube", "url": "https://youtu.be/EWs7V6RHMe4"},
+            "duel":   {"kind": "youtube", "url": "https://youtu.be/44pt8w67S8I"},
+            "parade": {"kind": "synth",   "url": ""},
+        }))
+        created = True
+
     if not session.get(Setting, "security"):
         session.add(Setting(key="security", value={
             "codeHash": hash_secret(DEFAULT_ADMIN_CODE),

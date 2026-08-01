@@ -15,10 +15,36 @@ from sqlalchemy.orm import sessionmaker, declarative_base
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
+def deployed() -> bool:
+    """
+    Запущены ли мы на хостинге, а не на своей машине.
+
+    Railway отдаёт служебные переменные каждому сервису; на своём компьютере
+    их нет. Различать важно: правила для боевого запуска и для разработки
+    противоположные.
+    """
+    return any(os.environ.get(k) for k in (
+        "RAILWAY_ENVIRONMENT", "RAILWAY_ENVIRONMENT_NAME",
+        "RAILWAY_SERVICE_ID", "RAILWAY_PROJECT_ID", "RENDER", "DYNO",
+    ))
+
+
 def database_url() -> str:
     url = os.environ.get("DATABASE_URL", "").strip()
 
     if not url:
+        # На хостинге файловая система контейнера живёт до следующего
+        # развёртывания. Свалиться на SQLite здесь — значит молча складывать
+        # аккаунты участников в файл, который сотрётся при первом же
+        # обновлении сайта. Лучше не запуститься и показать причину.
+        if deployed():
+            raise RuntimeError(
+                "DATABASE_URL not set. Refusing to start with a temporary database: "
+                "player accounts would be erased on the next deploy. "
+                "Add the PostgreSQL variable reference to this service in Railway "
+                "(Variables -> Add -> Reference -> Postgres.DATABASE_URL)."
+            )
+
         # Локальный запуск без PostgreSQL
         return f"sqlite:///{BASE_DIR / 'kogane.db'}"
 

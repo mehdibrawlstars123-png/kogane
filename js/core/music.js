@@ -206,14 +206,177 @@ const THEMES = {
   },
 };
 
+
+/* ---------------- Внешний источник ----------------
+
+   Сама запись в проект не кладётся: чужие треки распространять нельзя,
+   а из YouTube — ещё и запрещено правилами. Играет их встроенный
+   проигрыватель YouTube по ссылке, то есть с их же серверов и с их же
+   счётчиком просмотров. Свой звуковой файл (kind: file) проигрывается
+   обычным <audio>.
+
+   Браузер не даст запустить звук до первого действия пользователя —
+   если запуск отклонён, наружу уходит признак blocked, и интерфейс
+   показывает кнопку «включить музыку».                                */
+
+let external = null;    // { kind, url, el, player, ready }
+let ytApi = null;       // промис загрузки YouTube IFrame API
+
+/** Достаёт идентификатор ролика из любой формы ссылки */
+export function youtubeId(url) {
+  const m = String(url).match(
+    /(?:youtu\.be\/|v=|\/embed\/|\/shorts\/|\/live\/)([A-Za-z0-9_-]{11})/,
+  );
+  return m ? m[1] : null;
+}
+
+function loadYouTubeApi() {
+  if (ytApi) return ytApi;
+
+  ytApi = new Promise((resolve, reject) => {
+    if (window.YT && window.YT.Player) { resolve(window.YT); return; }
+
+    const prev = window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady = () => {
+      if (typeof prev === 'function') prev();
+      resolve(window.YT);
+    };
+
+    const tag = document.createElement('script');
+    tag.src = 'https://www.youtube.com/iframe_api';
+    tag.async = true;
+    tag.onerror = () => reject(new Error('YouTube недоступен'));
+    document.head.appendChild(tag);
+
+    // Не ждём вечно: без сети или при блокировке возвращаемся к своей теме
+    setTimeout(() => reject(new Error('YouTube не ответил')), 8000);
+  });
+
+  return ytApi;
+}
+
+function clearExternal() {
+  if (!external) return;
+  try {
+    if (external.player) external.player.destroy();
+    if (external.el) external.el.remove();
+  } catch { /* уже убран */ }
+  external = null;
+}
+
+/** Громкость внешнего источника подчиняется общему ползунку */
+function applyExternalVolume() {
+  if (!external) return;
+  const v = audio.volume;
+  try {
+    if (external.player && external.player.setVolume) external.player.setVolume(Math.round(v * 100));
+    if (external.el && external.el.tagName === 'AUDIO') external.el.volume = v;
+  } catch { /* проигрыватель ещё не готов */ }
+}
+
+async function startYouTube(url) {
+  const id = youtubeId(url);
+  if (!id) throw new Error('В ссылке нет идентификатора ролика');
+
+  const YT = await loadYouTubeApi();
+
+  // Проигрыватель нужен только ради звука — прячем его с глаз
+  const holder = document.createElement('div');
+  holder.id = 'evMusicYT';
+  holder.setAttribute('aria-hidden', 'true');
+  holder.style.cssText = 'position:fixed;left:-9999px;top:0;width:320px;height:180px;opacity:0;pointer-events:none';
+  document.body.appendChild(holder);
+
+  return new Promise((resolve, reject) => {
+    const player = new YT.Player(holder, {
+      videoId: id,
+      playerVars: { autoplay: 1, controls: 0, playsinline: 1, rel: 0, loop: 1, playlist: id },
+      events: {
+        onReady: (e) => {
+          external = { kind: 'youtube', url, el: holder, player: e.target, ready: true };
+          applyExternalVolume();
+          try { e.target.playVideo(); } catch { /* попробуем после жеста */ }
+          resolve(true);
+        },
+        onError: () => {
+          clearExternal();
+          reject(new Error('Ролик не воспроизводится'));
+        },
+      },
+    });
+    external = { kind: 'youtube', url, el: holder, player, ready: false };
+  });
+}
+
+async function startFile(url) {
+  const el = document.createElement('audio');
+  el.src = url;
+  el.loop = true;
+  el.preload = 'auto';
+  el.volume = audio.volume;
+  document.body.appendChild(el);
+  external = { kind: 'file', url, el, player: null, ready: true };
+  await el.play();
+  return true;
+}
+
 /* ---------------- Управление ---------------- */
 
 export const music = {
-  /** Что играет сейчас */
-  get current() { return live ? live.id : null; },
+  /** Что играет сейчас: идентификатор темы или 'external' */
+  get current() {
+    if (external) return 'external';
+    return live ? live.id : null;
+  },
+
+  /** Источник внешней записи, если играет она */
+  get source() { return external ? { kind: external.kind, url: external.url } : null; },
 
   /** Список тем — им же пользуется панель распорядителя */
   get themes() { return Object.keys(THEMES); },
+
+  /**
+   * Играет запись по ссылке: YouTube или свой звуковой файл.
+   * Если не получилось — возвращает false, и вызвавший ставит свою тему.
+   */
+  async play({ kind, url }) {
+    if (external && external.url === url && external.kind === kind) return true;
+    this.stop();
+
+    try {
+      if (kind === 'youtube') return await startYouTube(url);
+      if (kind === 'file') return await startFile(url);
+    } catch (e) {
+      clearExternal();
+      console.warn('[music] внешний источник не запустился:', e.message);
+      return false;
+    }
+    return false;
+  },
+
+  /** Повторная попытка после действия пользователя */
+  resume() {
+    if (!external) return false;
+    try {
+      if (external.player) external.player.playVideo();
+      else if (external.el) external.el.play().catch(() => {});
+      applyExternalVolume();
+      return true;
+    } catch { return false; }
+  },
+
+  /** Играет ли внешняя запись прямо сейчас */
+  get externalPlaying() {
+    if (!external) return false;
+    if (external.player && external.player.getPlayerState) {
+      return external.player.getPlayerState() === 1;   // 1 — воспроизведение
+    }
+    if (external.el && external.el.tagName === 'AUDIO') return !external.el.paused;
+    return false;
+  },
+
+  /** Согласовать громкость внешнего источника с ползунком */
+  syncVolume() { applyExternalVolume(); },
 
   /**
    * Включает тему ивента. Повторный вызов с тем же id ничего не делает,
@@ -252,6 +415,7 @@ export const music = {
 
   /** Останавливает музыку с коротким затуханием — без щелчка */
   stop() {
+    clearExternal();
     if (!live) return;
     clearInterval(live.timer);
 
@@ -273,3 +437,4 @@ export const music = {
 // Возвращённый — заводит тему идущего события заново: за то, какое
 // событие сейчас идёт, отвечает events.js, поэтому он и переподписывается.
 audio.onMute(() => music.stop());
+audio.onVolume(() => applyExternalVolume());

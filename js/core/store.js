@@ -17,6 +17,7 @@ const EMPTY = {
   auth: null,
   migration: { number: 1, active: true, startedAt: Date.now(), endedAt: null, note: '' },
   event: { id: null },
+  eventMusic: {},
   admins: [],
   security: { codeChanged: true },
   baseRules: [],
@@ -144,8 +145,18 @@ export const store = {
   /** Где на самом деле лежат данные — сервер сообщает это распорядителю */
   storage() { return db.storage || 'PostgreSQL'; },
 
+  /** Сайт выложен, а база временная — данные сотрутся при обновлении */
+  storageTemporary() { return Boolean(db.storageTemporary); },
+
   /** Идущий ивент: { id, title, jp, startedAt, startedBy } */
   event() { return db.event || { id: null }; },
+
+  /** Чем озвучивать события: { sukuna: {kind, url}, … } */
+  eventMusic(id = null) {
+    const all = db.eventMusic || {};
+    if (!id) return all;
+    return all[id] || { kind: 'synth', url: '' };
+  },
 
   /** Учётные записи распорядителей (видит только распорядитель) */
   admins() { return db.admins || []; },
@@ -312,6 +323,11 @@ export const store = {
 
   async startEvent(id) {
     await api.post('/api/admin/event/start', { id });
+    return this.refresh();
+  },
+
+  async setEventMusic({ id, kind, url }) {
+    await api.post('/api/admin/event/music', { id, kind, url });
     return this.refresh();
   },
 

@@ -60,7 +60,12 @@ function fxMarkup(id) {
          + '<div class="evfx__slash"></div><div class="evfx__slash"></div>';
   }
   if (id === 'duel') {
-    return '<div class="evfx__layer evfx__side"></div>'
+    // Экран поделён надвое: слева багровая сторона, справа голубая
+    return '<div class="evfx__half evfx__half--sukuna"></div>'
+         + '<div class="evfx__half evfx__half--gojo"></div>'
+         + '<div class="evfx__glow evfx__glow--sukuna"></div>'
+         + '<div class="evfx__glow evfx__glow--gojo"></div>'
+         + '<div class="evfx__seam"></div>'
          + '<div class="evfx__layer evfx__flash"></div>';
   }
   return '<div class="evfx__layer evfx__mist"></div>' + lamps(18);
@@ -125,6 +130,7 @@ function apply(id, { announce = false } = {}) {
   if (!id || !EVENTS[id]) {
     document.documentElement.removeAttribute('data-event');
     badge(null);
+    document.getElementById('evPlay')?.remove();
     music.stop();
     return;
   }
@@ -141,7 +147,54 @@ function apply(id, { announce = false } = {}) {
   document.body.appendChild(layer);
 
   if (announce) hail(id);
-  music.start(id);
+  startMusic(id);
+}
+
+/**
+ * Музыка события: сначала запись, назначенная распорядителем
+ * (ссылка на YouTube или свой файл), и только если её не удалось
+ * запустить — встроенная тема системы.
+ */
+async function startMusic(id) {
+  const src = store.eventMusic(id);
+
+  if (src && src.kind !== 'synth' && src.url) {
+    const ok = await music.play({ kind: src.kind, url: src.url });
+    if (ok) {
+      // Браузер мог принять запуск, но не дать звук до действия пользователя
+      setTimeout(() => { if (applied === id) askForGesture(id); }, 1200);
+      return;
+    }
+  }
+
+  if (applied === id) music.start(id);
+}
+
+/**
+ * Кнопка «включить музыку».
+ *
+ * До первого нажатия браузер не разрешает звук — это правило самого
+ * браузера, обойти его нельзя. Если запись не пошла, показываем кнопку
+ * рядом с меткой события: одно нажатие, и музыка идёт.
+ */
+function askForGesture(id) {
+  if (music.externalPlaying) { document.getElementById('evPlay')?.remove(); return; }
+  if (document.getElementById('evPlay')) return;
+
+  const badgeEl = document.getElementById('evBadge');
+  if (!badgeEl) return;
+
+  const btn = document.createElement('button');
+  btn.id = 'evPlay';
+  btn.type = 'button';
+  btn.className = 'ev-badge ev-badge--play';
+  btn.textContent = '♪ включить музыку';
+  btn.addEventListener('click', () => {
+    audio.unlock();
+    music.resume();
+    setTimeout(() => { if (music.externalPlaying) btn.remove(); }, 800);
+  });
+  badgeEl.insertAdjacentElement('afterend', btn);
 }
 
 /* ---------------- Слежение за состоянием ---------------- */
@@ -173,7 +226,11 @@ export const events = {
     // Музыка не заводится до первого действия пользователя: браузер
     // не даёт запустить звук сам. Догоняем при первом же нажатии.
     const kick = () => {
-      if (applied) music.start(applied);
+      if (!applied) return;
+      // Запись уже загружена — просто снимаем запрет браузера;
+      // иначе поднимаем источник заново
+      if (music.source) { music.resume(); document.getElementById('evPlay')?.remove(); }
+      else startMusic(applied);
     };
     window.addEventListener('pointerdown', kick, { once: true });
     window.addEventListener('keydown', kick, { once: true });
@@ -191,7 +248,13 @@ export const events = {
     if (id) {
       audio.unlock();
       hail(id);
-      music.start(id);
+      startMusic(id);
     }
+  },
+
+  /** Перезапустить музыку — после смены источника в панели */
+  reloadMusic() {
+    music.stop();
+    if (applied) startMusic(applied);
   },
 };

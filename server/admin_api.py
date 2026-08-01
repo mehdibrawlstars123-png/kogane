@@ -14,7 +14,7 @@ from .api import (
     COLONY_NAMES, LEVEL_NAMES, STATUS_NAMES, check,
     ApproveIn, RejectIn, PatchParticipant, PointsIn, RuleGrant, MassIn,
     ShopRuleIn, NoticeIn, BroadcastIn, MigrationIn, SecurityIn,
-    EventIn, AdminIn, AdminPatch,
+    EventIn, EventMusicIn, AdminIn, AdminPatch,
 )
 from .models import (
     User, Npc, ShopRule, RuleHistory, Notification, LogEntry, Session as UserSession,
@@ -755,5 +755,34 @@ def delete_admin(uid: str, data=Depends(require_admin)):
     session.delete(user)
     add_log(session, admin.email, "admin-delete",
             f"Удалена учётная запись распорядителя: {email}.", "danger")
+    session.commit()
+    return {"ok": True}
+
+
+@router.post("/event/music")
+def set_event_music(body: EventMusicIn, data=Depends(require_admin)):
+    """
+    Чем озвучивать событие: ссылкой на YouTube, своим звуковым файлом
+    или встроенной темой системы.
+    """
+    admin, session = data
+    if body.id not in EVENTS:
+        raise HTTPException(404, "Такого ивента нет")
+    if body.kind not in ("youtube", "file", "synth"):
+        raise HTTPException(422, "Неизвестный источник музыки")
+
+    url = body.url.strip()
+    if body.kind != "synth":
+        if not url.startswith(("http://", "https://")):
+            raise HTTPException(400, "Ссылка должна начинаться с http:// или https://")
+        if body.kind == "youtube" and "youtu" not in url:
+            raise HTTPException(400, "Это не похоже на ссылку YouTube")
+
+    current = setting(session, "event_music") or {}
+    current[body.id] = {"kind": body.kind, "url": url if body.kind != "synth" else ""}
+    save_setting(session, "event_music", current)
+
+    add_log(session, admin.email, "event-music",
+            f"Музыка события «{EVENTS[body.id]['title']}»: {body.kind} {url}".strip())
     session.commit()
     return {"ok": True}

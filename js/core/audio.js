@@ -160,6 +160,7 @@ export function audioNode() {
 // вернули, музыка идущего события должна зазвучать снова.
 const muteHooks = new Set();
 const unmuteHooks = new Set();
+const volumeHooks = new Set();
 
 /* ---------------- Публичный интерфейс ---------------- */
 
@@ -169,6 +170,9 @@ export const audio = {
 
   /** Подписка на возврат звука */
   onUnmute(fn) { unmuteHooks.add(fn); return () => unmuteHooks.delete(fn); },
+
+  /** Подписка на любое движение ползунка — внешнему проигрывателю тоже нужно */
+  onVolume(fn) { volumeHooks.add(fn); return () => volumeHooks.delete(fn); },
 
   /** Включён ли звук (громкость больше нуля) */
   get enabled() { return volume > 0; },
@@ -183,6 +187,7 @@ export const audio = {
     const was = volume;
     volume = Math.min(1, Math.max(0, Number(v) || 0));
     storage.set('volume', volume);
+    volumeHooks.forEach((fn) => { try { fn(volume); } catch { /* подписчик упал */ } });
 
     if (volume === 0) {
       stopHum();

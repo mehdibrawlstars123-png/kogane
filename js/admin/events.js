@@ -9,8 +9,9 @@ import { $, $$, on } from '../core/dom.js?v=10';
 import { store } from '../core/store.js?v=10';
 import { audio } from '../core/audio.js?v=10';
 import { events, EVENTS } from '../core/events.js?v=10';
+import { music, youtubeId } from '../core/music.js?v=10';
 import { toast, modal } from '../core/ui.js?v=10';
-import { dt } from '../core/format.js?v=10';
+import { dt, esc } from '../core/format.js?v=10';
 
 /* Что показывать на карточке каждого события */
 const CARDS = [
@@ -62,8 +63,15 @@ export const eventsAdmin = {
             уведомлений приходит объявление. Запускать может только распорядитель.
           </p>
           <p class="fs-xxs muted mono mt-2">
-            Музыка написана и собирается в браузере из звуковых волн — звуковых файлов
-            в проекте нет. Участник со снятой громкостью увидит событие без музыки.
+            Музыку каждому событию можно назначить своей ссылкой — она играет
+            во встроенном проигрывателе YouTube. Если ссылки нет или ролик
+            не открылся, включается написанная тема системы.
+            Участник со снятой громкостью увидит событие без музыки.
+          </p>
+          <p class="fs-xxs muted mono mt-2">
+            Браузер не даёт запускать звук, пока человек ничего не нажал на странице —
+            это его правило, обойти нельзя. Такому участнику система покажет
+            рядом с меткой события кнопку «♪ включить музыку».
           </p>
         </div>
       </div>
@@ -85,6 +93,13 @@ export const eventsAdmin = {
                 <span class="tile__val tile__val--text fs-xs">${now.startedBy || '—'}</span>
               </div>
               <div class="tile">
+                <span class="tile__key">Звук</span>
+                <span class="tile__val tile__val--text fs-xs">${
+                  music.current === 'external' ? 'запись по ссылке'
+                    : (music.current ? 'тема системы' : 'молчит')
+                }</span>
+              </div>
+              <div class="tile">
                 <span class="tile__key">Начало</span>
                 <span class="tile__val tile__val--text fs-xs">${now.startedAt ? dt(now.startedAt) : '—'}</span>
               </div>
@@ -102,6 +117,7 @@ export const eventsAdmin = {
         ${CARDS.map((c) => {
           const info = EVENTS[c.id];
           const isOn = active === c.id;
+          const src = store.eventMusic(c.id);
           return `
           <div class="panel ${isOn ? 'panel--framed' : ''}">
             <div class="panel__head">
@@ -113,7 +129,32 @@ export const eventsAdmin = {
               <div class="mt-3 fs-xxs mono muted">
                 <div>Оформление: ${c.visual}</div>
                 <div>Палитра: ${c.color}</div>
-                <div>Музыка: ${c.music}</div>
+                <div>Своя тема: ${c.music}</div>
+              </div>
+
+              <label class="field mt-3">
+                <span class="field__label">Музыка события</span>
+                <select class="field__select" data-kind="${c.id}">
+                  <option value="youtube" ${src.kind === 'youtube' ? 'selected' : ''}>Ссылка YouTube</option>
+                  <option value="file" ${src.kind === 'file' ? 'selected' : ''}>Свой звуковой файл</option>
+                  <option value="synth" ${src.kind === 'synth' ? 'selected' : ''}>Тема системы (синтез)</option>
+                </select>
+              </label>
+              <label class="field">
+                <span class="field__wrap">
+                  <input class="field__input" data-url="${c.id}" placeholder="https://youtu.be/…"
+                         value="${esc(src.url || '')}" ${src.kind === 'synth' ? 'disabled' : ''} />
+                </span>
+                <span class="field__hint"><span>${
+                  src.kind === 'youtube' && src.url
+                    ? (youtubeId(src.url) ? `ролик ${youtubeId(src.url)}` : 'в ссылке не найден идентификатор ролика')
+                    : 'Ссылка на ролик или на звуковой файл'
+                }</span></span>
+              </label>
+              <div class="btn-row">
+                <button class="btn btn--sm btn--ghost" type="button" data-music="${c.id}">
+                  Сохранить музыку
+                </button>
               </div>
               <div class="btn-row mt-3">
                 <button class="btn btn--sm ${isOn ? '' : 'btn--primary'}" type="button"
@@ -161,6 +202,34 @@ export const eventsAdmin = {
         text: `${EVENTS[id].title} — показано только вам. `
             + 'Обновится при следующем ответе сервера.',
       });
+    }));
+
+    /* Источник музыки */
+    $$('[data-kind]', root).forEach((sel) => on(sel, 'change', () => {
+      const input = $(`[data-url="${sel.dataset.kind}"]`, root);
+      input.disabled = sel.value === 'synth';
+    }));
+
+    $$('[data-music]', root).forEach((b) => on(b, 'click', async () => {
+      const id = b.dataset.music;
+      const kind = $(`[data-kind="${id}"]`, root).value;
+      const url = $(`[data-url="${id}"]`, root).value.trim();
+
+      if (kind === 'youtube' && url && !youtubeId(url)) {
+        toast.err('Ссылка не принята', 'В ней нет идентификатора ролика YouTube');
+        return;
+      }
+
+      try {
+        await store.setEventMusic({ id, kind, url });
+      } catch (err) { toast.err('Не сохранено', err.message); return; }
+
+      toast.ok('Музыка события сохранена',
+        kind === 'synth' ? 'Будет играть тема системы' : 'Проверьте её кнопкой «Посмотреть у себя»');
+
+      // Если это событие идёт прямо сейчас — перезапускаем звук
+      if (active === id) events.reloadMusic();
+      refresh();
     }));
 
     /* Остановка */

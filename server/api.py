@@ -12,7 +12,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select, delete
 from sqlalchemy.orm import Session as OrmSession
 
-from .db import get_session, IS_SQLITE
+from .db import get_session, IS_SQLITE, deployed
 from .models import (
     User, Npc, ShopRule, BaseRule, RuleHistory, Notification, LogEntry, Setting, Session as UserSession,
 )
@@ -160,6 +160,7 @@ def build_state(session: OrmSession, user: Optional[User]) -> dict:
         "security": {"codeChanged": bool(security.get("codeChanged"))},
         # Ивент виден всем, включая экран входа: оформление меняется у каждого
         "event": setting(session, "event") or {"id": None},
+        "eventMusic": setting(session, "event_music"),
         "baseRules": [r.public() for r in session.scalars(
             select(BaseRule).order_by(BaseRule.sort)).all()],
         "shopRules": [], "ruleHistory": [], "participants": [],
@@ -185,6 +186,8 @@ def build_state(session: OrmSession, user: Optional[User]) -> dict:
         # PostgreSQL, локально — файл SQLite. Плитка «Хранилище» берёт значение
         # отсюда, а не пишет PostgreSQL вслепую.
         state["storage"] = "SQLite (локально)" if IS_SQLITE else "PostgreSQL"
+        # Сайт выложен, а база временная — аккаунты сотрутся при обновлении
+        state["storageTemporary"] = bool(IS_SQLITE and deployed())
         state["users"] = [u.public(full=True) for u in session.scalars(select(User)).all()]
         state["admins"] = [u.public(full=True) for u in session.scalars(
             select(User).where(User.role == "admin").order_by(User.created_at)).all()]
@@ -308,6 +311,12 @@ class MigrationIn(BaseModel):
 
 class EventIn(BaseModel):
     id: str
+
+
+class EventMusicIn(BaseModel):
+    id: str
+    kind: str = "synth"      # youtube | file | synth
+    url: str = ""
 
 
 class AdminIn(BaseModel):

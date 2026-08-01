@@ -247,6 +247,26 @@ export const baseAdmin = {
         <div class="tile"><span class="tile__key">Записей журнала</span><span class="tile__val jp">${pts(store.logs().length, 3)}</span></div>
         <div class="tile"><span class="tile__key">Хранилище</span><span class="tile__val tile__val--text fs-xs">${store.storage()}</span></div>
       </div>
+      ${store.storageTemporary() ? `
+        <div class="panel panel--framed mt-4" style="border-color:var(--danger);color:var(--danger-ink)">
+          <div class="panel__head">
+            <span class="panel__title">База временная — данные сотрутся</span>
+            <span class="panel__jp jp">警告</span>
+          </div>
+          <div class="panel__body">
+            <p class="fs-xs">
+              Сайт работает на файловой базе внутри контейнера, а не на PostgreSQL.
+              Такой файл живёт до следующего развёртывания: при обновлении сайта
+              все аккаунты участников и реестр исчезнут.
+            </p>
+            <p class="fs-xxs mono mt-2">
+              Исправление: в Railway откройте сервис сайта → Variables → Add →
+              Reference → Postgres.DATABASE_URL, затем перезапустите сервис.
+              Проверить можно по адресу <b>/api/health</b>: должно быть
+              <b>"database": "postgresql"</b>.
+            </p>
+          </div>
+        </div>` : ''}
 
       <div class="panel panel--framed mt-4">
         <div class="panel__head">

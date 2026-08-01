@@ -20,7 +20,12 @@ export const applications = {
   jp: '審査',
 
   render(root, { admin, refresh }) {
-    const queue = store.users().filter((u) => u.role !== 'admin' && u.application && u.state === tab);
+    const players = store.users().filter((u) => u.role !== 'admin');
+    // Вкладка «все» показывает и тех, кто ещё не заполнил анкету:
+    // если участник пропал из таблицы, здесь видно, жив ли его аккаунт
+    const queue = tab === 'all'
+      ? players
+      : players.filter((u) => u.application && u.state === tab);
 
     root.innerHTML = `
       <div class="sec-head">
@@ -39,11 +44,25 @@ export const applications = {
         <button class="atab ${tab === 'rejected' ? 'is-active' : ''}" type="button" data-tab="rejected">
           Отклонённые (${store.users().filter((u) => u.state === 'rejected').length})
         </button>
+        <button class="atab ${tab === 'all' ? 'is-active' : ''}" type="button" data-tab="all">
+          Все аккаунты (${players.length})
+        </button>
       </div>
+
+      ${tab === 'all' ? `
+        <p class="fs-xxs muted mono mb-3">
+          Здесь каждый заведённый аккаунт с его состоянием. В таблицу участников
+          попадают только одобренные: если человек есть в списке, но не в таблице —
+          его анкета не одобрена, и решение принимается во вкладке «На рассмотрении».
+        </p>` : ''}
 
       <div class="appq">
         ${queue.length ? queue.map((u) => {
-          const a = u.application;
+          const a = u.application || {};
+          const STATE = {
+            registered: 'анкета не заполнена', applied: 'на рассмотрении',
+            approved: 'в таблице участников', rejected: 'отклонена',
+          };
           return `
           <div class="appq__item" data-user="${u.id}">
             <span>${participantIcon(true, 3)}</span>
@@ -55,17 +74,20 @@ export const applications = {
                 ${esc(u.email)} · ${levelById(a.level).ru}
                 ${a.roblox ? ` · Roblox: ${esc(a.roblox)}` : ''}
                 ${a.discord ? ` · Discord: ${esc(a.discord)}` : ''}
-                · подана ${a.submittedAt ? ago(a.submittedAt) : '—'}
+                · ${STATE[u.state] || u.state}
+                ${a.submittedAt ? ` · подана ${ago(a.submittedAt)}` : ''}
               </div>
             </span>
             <span class="btn-row">
-              <button class="btn btn--sm btn--ghost" type="button" data-view="${u.id}">Открыть</button>
-              ${tab === 'applied' ? `
+              ${u.application ? `<button class="btn btn--sm btn--ghost" type="button" data-view="${u.id}">Открыть</button>` : ''}
+              ${u.state === 'applied' ? `
                 <button class="btn btn--sm btn--primary" type="button" data-ok="${u.id}">Принять</button>
                 <button class="btn btn--sm btn--danger" type="button" data-no="${u.id}">Отклонить</button>` : ''}
             </span>
           </div>`;
-        }).join('') : '<div class="empty">Анкет в этом состоянии нет</div>'}
+        }).join('') : `<div class="empty">${
+          tab === 'all' ? 'Аккаунтов участников ещё нет' : 'Анкет в этом состоянии нет'
+        }</div>`}
       </div>`;
 
     $$('[data-tab]', root).forEach((b) => on(b, 'click', () => {
