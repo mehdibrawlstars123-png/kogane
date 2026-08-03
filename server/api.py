@@ -563,6 +563,31 @@ def submit_application(body: ApplicationIn, data=Depends(require_user)):
     return {"user": user.public(full=True)}
 
 
+class CardIn(BaseModel):
+    card: str
+
+
+@router.post("/profile/card")
+def set_card(body: CardIn, data=Depends(require_user)):
+    """
+    Карточка мувсета из Workshop.
+
+    Отдельно от анкеты: участники, зарегистрированные до появления этого
+    поля, прикладывают карточку прямо из системы, не подавая анкету заново.
+    """
+    user, session = data
+
+    if not body.card.startswith("data:image/"):
+        raise HTTPException(400, "Карточка должна быть изображением")
+    if len(body.card) > 1_400_000:
+        raise HTTPException(413, "Карточка тяжелее полутора мегабайт — уменьшите изображение")
+
+    user.card = body.card
+    add_log(session, user.email, "card", "Карточка мувсета приложена.")
+    session.commit()
+    return {"ok": True}
+
+
 @router.post("/migration/confirm")
 def confirm_participation(data=Depends(require_user)):
     """

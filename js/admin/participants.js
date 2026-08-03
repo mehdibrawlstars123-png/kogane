@@ -271,6 +271,23 @@ function paintPane(root, ctx, self) {
       <button class="btn btn--sm btn--ghost" type="button" id="pNotify">Отправить уведомление</button>
     </div>
 
+    <!-- Карточка мувсета из Workshop: распорядитель видит её прямо здесь -->
+    ${p.isNpc ? '' : `
+      <div class="panel mb-4">
+        <div class="panel__head">
+          <span class="panel__title">Карточка мувсета</span>
+          <span class="panel__jp jp">技表</span>
+        </div>
+        <div class="panel__body">
+          ${store.userById(p.id)?.card
+            ? `<img class="cardshot" src="${store.userById(p.id).card}" alt="Карточка мувсета участника" />`
+            : `<p class="fs-xxs muted mono">
+                 Карточка не приложена — участник регистрировался до её появления.
+                 Система сама попросит его загрузить карточку при входе.
+               </p>`}
+        </div>
+      </div>`}
+
     <div class="panel">
       <div class="panel__head">
         <span class="panel__title">Правила участника</span>

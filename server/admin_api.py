@@ -633,9 +633,103 @@ def clear_demo(data=Depends(require_admin)):
 
 @router.get("/export")
 def export_db(data=Depends(require_admin)):
-    """Выгрузка состояния для резервной копии."""
+    """
+    Резервная копия.
+
+    В отличие от обычного состояния, сюда попадают хеши паролей и кодов:
+    без них восстановленные аккаунты нельзя было бы открыть их владельцам.
+    Хеши необратимы, но файл всё равно держите при себе.
+    """
     admin, session = data
-    return build_state(session, admin)
+
+    return {
+        "kogane": 1,
+        "exportedAt": now_ms(),
+        "users": [{
+            "id": u.id, "email": u.email, "role": u.role, "state": u.state,
+            "passHash": u.pass_hash, "codeHash": u.code_hash,
+            "createdAt": u.created_at, "approvedAt": u.approved_at,
+            "application": u.application, "character": u.character,
+            "ownedRules": u.owned_rules or [], "card": u.card,
+            "totalPoints": int(u.total_points or 0),
+            "missedStreak": int(u.missed_streak or 0),
+            "joinedNo": u.joined_no,
+            "rejectReason": u.reject_reason,
+        } for u in session.scalars(select(User)).all()],
+        "npcs": [n.public() for n in session.scalars(select(Npc)).all()],
+        "shopRules": [r.public() for r in session.scalars(select(ShopRule)).all()],
+        "ruleHistory": [r.public() for r in session.scalars(select(RuleHistory)).all()],
+        "settings": {
+            "migration": setting(session, "migration"),
+            "eventMusic": setting(session, "event_music"),
+        },
+    }
+
+
+@router.post("/import")
+def import_db(payload: dict, data=Depends(require_admin)):
+    """
+    Восстановление аккаунтов из резервной копии.
+
+    Работает только на добавление: если такая почта уже заведена, запись
+    из копии пропускается. Живые данные копия не перетирает — иначе
+    восстановление одного потерянного аккаунта откатило бы всех остальных.
+    """
+    admin, session = data
+
+    users = payload.get("users")
+    if not isinstance(users, list):
+        raise HTTPException(400, "Это не похоже на копию базы Коганэ")
+
+    есть = {u.email.lower() for u in session.scalars(select(User)).all()}
+    восстановлено, пропущено = 0, 0
+
+    for row in users:
+        email = str(row.get("email", "")).strip().lower()
+        if not email or email in есть:
+            пропущено += 1
+            continue
+        if not row.get("passHash"):
+            пропущено += 1
+            continue
+
+        session.add(User(
+            id=row.get("id") or new_id("u"),
+            email=email,
+            pass_hash=row["passHash"],
+            code_hash=row.get("codeHash"),
+            role=row.get("role", "player"),
+            state=row.get("state", "registered"),
+            created_at=row.get("createdAt") or now_ms(),
+            approved_at=row.get("approvedAt"),
+            reject_reason=row.get("rejectReason"),
+            application=row.get("application"),
+            character=row.get("character"),
+            owned_rules=row.get("ownedRules") or [],
+            card=row.get("card"),
+            total_points=int(row.get("totalPoints") or 0),
+            missed_streak=int(row.get("missedStreak") or 0),
+            joined_no=row.get("joinedNo"),
+        ))
+        есть.add(email)
+        восстановлено += 1
+
+    # Записи реестра без аккаунта — тоже по одной, по идентификатору
+    имеющиеся = {n.id for n in session.scalars(select(Npc)).all()}
+    for row in payload.get("npcs", []) or []:
+        if row.get("id") in имеющиеся:
+            continue
+        session.add(Npc(
+            id=row["id"], name=row.get("name", "—"), name_jp=row.get("nameJp", ""),
+            level=row.get("level", "g4"), points=int(row.get("points") or 0),
+            rules=int(row.get("rules") or 0), colony=row.get("colony", "tokyo1"),
+            status=row.get("status", "active"),
+        ))
+
+    add_log(session, admin.email, "db-import",
+            f"Восстановление из копии: добавлено {восстановлено}, пропущено {пропущено}.", "warn")
+    session.commit()
+    return {"ok": True, "restored": восстановлено, "skipped": пропущено}
 
 
 @router.post("/reset")

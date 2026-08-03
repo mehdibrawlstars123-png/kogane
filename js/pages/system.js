@@ -17,6 +17,7 @@ import { shownToasts } from '../core/notify.js?v=11';
 import { events } from '../core/events.js?v=11';
 import { phase } from '../core/phase.js?v=11';
 import { checkConfirm } from '../modules/confirm.js?v=11';
+import { askForCard } from '../modules/cardask.js?v=11';
 
 import { home } from '../sections/home.js?v=11';
 import { profile } from '../sections/profile.js?v=11';
@@ -283,6 +284,10 @@ function watch() {
 // объявил миграцию, и снимается после подтверждения или по истечении срока
 checkConfirm();
 bus.on(EV.dbChange, () => checkConfirm());
+
+// Участникам, зарегистрированным до появления карточки мувсета,
+// система предлагает приложить её — один раз за заход
+askForCard();
 
 bus.on(EV.dbSync, watch);
 bus.on(EV.dbChange, () => paintHead());

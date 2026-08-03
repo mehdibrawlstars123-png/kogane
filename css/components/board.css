@@ -271,6 +271,11 @@
   50%      { opacity: 0.72; }
 }
 
+/* Окно с просьбой о карточке шире: в нём предпросмотр изображения */
+.joinscr__win--wide { width: min(680px, 100%); }
+.joinscr__win--wide .cardpick__preview { width: 100%; max-height: 320px; overflow: hidden; }
+.joinscr__win--wide .btn-row { flex-wrap: wrap; justify-content: center; gap: var(--sp-2); }
+
 @media (max-width: 640px) {
   .joinscr__win { padding: var(--sp-4) var(--sp-3); }
   .joinscr__title { font-size: var(--fs-lg); }

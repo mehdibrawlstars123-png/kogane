@@ -375,11 +375,19 @@ export const baseAdmin = {
           <div class="panel__body">
             <p class="fs-xxs mono muted mb-4">
               Данные хранятся в базе PostgreSQL на сервере и общие для всех участников.
-              Выгрузка снимает копию текущего состояния — на случай разбора спорных ситуаций.
+              Выгрузка снимает копию текущего состояния: аккаунты, анкеты, очки,
+              карточки мувсетов и правила. Снимайте её перед крупными изменениями —
+              из копии можно вернуть потерянные аккаунты.
             </p>
             <div class="btn-row">
               <button class="btn btn--sm btn--primary" type="button" id="dbExport">Выгрузить копию</button>
+              <input type="file" id="dbFile" accept="application/json,.json" hidden />
+              <button class="btn btn--sm" type="button" id="dbImport">Восстановить из копии</button>
             </div>
+            <p class="fs-xxs mono muted mt-3">
+              Восстановление только добавляет: аккаунт возвращается, если такой почты
+              сейчас нет. Живые записи копия не перетирает.
+            </p>
           </div>
         </div>
 
@@ -483,6 +491,42 @@ export const baseAdmin = {
       try { count = await store.loadDemoRoster(); }
       catch (err) { toast.err('Не удалось загрузить', err.message); return; }
       toast.ok('Демо-реестр загружен', `Записей: ${count}`);
+      this.render(root, ctx);
+    });
+
+    /* Восстановление аккаунтов из ранее выгруженной копии */
+    on($('#dbImport', root), 'click', () => $('#dbFile', root).click());
+
+    on($('#dbFile', root), 'change', async (e) => {
+      const file = e.target.files && e.target.files[0];
+      e.target.value = '';
+      if (!file) return;
+
+      let payload;
+      try {
+        payload = JSON.parse(await file.text());
+      } catch (err) {
+        toast.err('Файл не прочитан', 'Это должен быть JSON, выгруженный этой же системой');
+        return;
+      }
+
+      const сколько = Array.isArray(payload.users) ? payload.users.length : 0;
+      const ok = await modal.confirm({
+        title: 'Восстановление из копии', jp: '復元',
+        text: `В файле записей: ${сколько}. Будут добавлены только те аккаунты, `
+            + 'почты которых сейчас нет в базе. Существующие записи не изменятся.',
+        okText: 'Восстановить',
+      });
+      if (!ok) return;
+
+      let res;
+      try {
+        res = await store.importBackup(payload);
+      } catch (err) { toast.err('Не восстановлено', err.message); return; }
+
+      audio.ok();
+      toast.ok('Восстановление выполнено',
+        `Добавлено: ${res.restored}, пропущено: ${res.skipped}`);
       this.render(root, ctx);
     });
 

@@ -190,9 +190,12 @@ def seed(session) -> None:
         created = True
 
     if not session.get(Setting, "migration"):
+        # Система начинает работу в нейтральном периоде: сайт открыт,
+        # игра не идёт. Первую миграцию объявляет распорядитель кнопкой.
         session.add(Setting(key="migration", value={
-            "number": 1, "active": True, "startedAt": now_ms(), "endedAt": None,
-            "note": "Первая миграция. Барьеры развёрнуты над десятью колониями.",
+            "number": 0, "active": False, "phase": "neutral",
+            "startedAt": now_ms(), "endedAt": None,
+            "note": "Миграция ещё не объявлена. Ожидайте распоряжения.",
         }))
         created = True
 

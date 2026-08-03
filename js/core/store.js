@@ -209,6 +209,12 @@ export const store = {
     return res;
   },
 
+  /** Приложить карточку мувсета (в том числе после одобрения анкеты) */
+  async setCard(card) {
+    await api.post('/api/profile/card', { card });
+    return this.refresh();
+  },
+
   async buyRule(ruleId) {
     const res = await api.post('/api/shop/buy', { ruleId });
     await this.refresh();
@@ -266,6 +272,13 @@ export const store = {
   },
 
   /** Удаляет все аккаунты участников, оставляя правила и настройки */
+  /** Восстановление аккаунтов из резервной копии */
+  async importBackup(payload) {
+    const res = await api.post('/api/admin/import', payload);
+    await this.refresh();
+    return res;
+  },
+
   async purgeUsers() {
     const res = await api.post('/api/admin/users/purge');
     await this.refresh();
