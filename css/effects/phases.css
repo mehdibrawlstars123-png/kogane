@@ -161,74 +161,39 @@
   opacity: 0.65;
 }
 
-/* ---------- Подтверждение участия: тревожное ожидание ---------- */
+/* ---------- Подтверждение участия ----------
+
+   Панель остаётся зелёной: это тот же сайт, просто объявлена миграция.
+   Меняется только свечение — тёплое, тревожное, чтобы состояние
+   читалось с первого взгляда.                                        */
 
 :root[data-phase="confirm"] {
-  --phos:        #f2d98a;
-  --phos-hi:     #fff2c4;
-  --phos-lo:     #d4b45e;
-  --phos-deep:   #a88a38;
-
-  --ink:         #23180a;
-  --ink-2:       #372711;
-  --ink-soft:    rgba(35, 24, 10, 0.74);
-  --ink-faint:   rgba(35, 24, 10, 0.38);
-  --ink-line:    rgba(35, 24, 10, 0.28);
-
-  --bg:          #141007;
-  --bg-2:        #24190a;
-  --bg-3:        #35250f;
-  --bg-teal:     #574019;
-
-  --glow:        #ffcf5a;
-  --glow-soft:   rgba(255, 207, 90, 0.30);
-  --glow-strong: rgba(255, 207, 90, 0.55);
+  --glow:        #ffc23d;
+  --glow-soft:   rgba(255, 194, 61, 0.32);
+  --glow-strong: rgba(255, 194, 61, 0.62);
 }
 
-/* ---------- Активная миграция: тяжёлый, серьёзный вид ---------- */
-
-:root[data-phase="active"] {
-  --phos:        #c9ccd2;
-  --phos-hi:     #eef0f3;
-  --phos-lo:     #9aa0a9;
-  --phos-deep:   #6d737c;
-
-  --ink:         #0a0a0c;
-  --ink-2:       #16171b;
-  --ink-soft:    rgba(10, 10, 12, 0.76);
-  --ink-faint:   rgba(10, 10, 12, 0.40);
-  --ink-line:    rgba(10, 10, 12, 0.32);
-
-  --bg:          #07070a;
-  --bg-2:        #101015;
-  --bg-3:        #1a1a22;
-  --bg-teal:     #2a1c2e;
-
-  --glow:        #b4232f;
-  --glow-soft:   rgba(180, 35, 47, 0.28);
-  --glow-strong: rgba(180, 35, 47, 0.55);
-
-  --danger:      #d2222f;
-  --danger-ink:  #5c0d13;
-}
-
-/* Красно-фиолетовый отсвет по краям: миграция идёт */
-:root[data-phase="active"] .screen::before {
+/* Тёплая рамка по краю экрана, пока идёт отсчёт */
+:root[data-phase="confirm"] .screen::before {
   content: "";
   position: absolute;
   inset: 0;
   z-index: 3;
   pointer-events: none;
-  background:
-    radial-gradient(ellipse at 0% 0%, rgba(180, 35, 47, 0.22), transparent 46%),
-    radial-gradient(ellipse at 100% 100%, rgba(104, 44, 160, 0.22), transparent 46%);
-  animation: phase-pulse 5.5s ease-in-out infinite;
+  box-shadow: inset 0 0 0 3px rgba(255, 194, 61, 0.55);
+  animation: phase-pulse 2.4s ease-in-out infinite;
 }
 
 @keyframes phase-pulse {
-  0%, 100% { opacity: 0.55; }
+  0%, 100% { opacity: 0.45; }
   50%      { opacity: 1; }
 }
+
+/* ---------- Активная миграция ----------
+
+   Оформление обычное, люминофорно-зелёное: во время игры сайт выглядит
+   так, как выглядел всегда. Отдельной палитры здесь нет намеренно —
+   отличается нейтральный период, а не миграция.                       */
 
 /* ---------- Плашка состояния на главной ---------- */
 
@@ -277,5 +242,5 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .sky__cloud, .sky__glow, :root[data-phase="active"] .screen::before { animation: none; }
+  .sky__cloud, .sky__glow, :root[data-phase="confirm"] .screen::before { animation: none; }
 }
