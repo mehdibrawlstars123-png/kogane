@@ -1,0 +1,281 @@
+/* =========================================================
+   ФАЗЫ ИГРЫ — оформление под состояние системы
+
+   neutral — между миграциями: светлое небо, стекло, покой
+   confirm — объявлена миграция, идёт подтверждение участия
+   active  — миграция идёт: тяжёлый, серьёзный вид
+
+   Как и события, фаза переопределяет палитру: интерфейс собран
+   на переменных, поэтому перекрашивается целиком. Событие (data-event)
+   подключается позже и перебивает фазу — оно временное и главнее.
+   ========================================================= */
+
+/* ---------- Нейтральный период: небо и стекло ---------- */
+
+:root[data-phase="neutral"] {
+  --phos:        #eaf6ff;
+  --phos-hi:     #ffffff;
+  --phos-lo:     #cfe7fb;
+  --phos-deep:   #a8d2f2;
+
+  --ink:         #10314f;
+  --ink-2:       #1c4670;
+  --ink-soft:    rgba(16, 49, 79, 0.72);
+  --ink-faint:   rgba(16, 49, 79, 0.30);
+  --ink-line:    rgba(16, 49, 79, 0.22);
+
+  --bg:          #7cc0ee;
+  --bg-2:        #a5d6f5;
+  --bg-3:        #c9e7fb;
+  --bg-teal:     #dff1ff;
+
+  --glow:        #ffffff;
+  --glow-soft:   rgba(255, 255, 255, 0.55);
+  --glow-strong: rgba(255, 255, 255, 0.85);
+
+  /* Обводка глифов в светлой теме только портит вид */
+  --stroke:      0px;
+}
+
+/* Панель Коганэ становится стеклом: полупрозрачной, с размытием */
+:root[data-phase="neutral"] .screen {
+  background: linear-gradient(180deg,
+    rgba(255, 255, 255, 0.78) 0%,
+    rgba(232, 246, 255, 0.62) 45%,
+    rgba(205, 233, 252, 0.58) 100%);
+  backdrop-filter: blur(14px) saturate(1.1);
+  -webkit-backdrop-filter: blur(14px) saturate(1.1);
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  border-radius: 22px;
+  box-shadow:
+    0 20px 60px rgba(24, 74, 120, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+:root[data-phase="neutral"] .panel,
+:root[data-phase="neutral"] .tile,
+:root[data-phase="neutral"] .modal__win {
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: 16px;
+  box-shadow: 0 8px 26px rgba(24, 74, 120, 0.12);
+}
+
+:root[data-phase="neutral"] .panel__head {
+  background: rgba(255, 255, 255, 0.42);
+  border-bottom: 1px solid rgba(16, 49, 79, 0.14);
+}
+
+:root[data-phase="neutral"] .btn {
+  border-radius: 12px;
+  border-width: 1px;
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+:root[data-phase="neutral"] .btn--primary {
+  background: linear-gradient(180deg, #ffffff, #d8ecfd);
+  color: var(--ink);
+}
+
+:root[data-phase="neutral"] .field__input,
+:root[data-phase="neutral"] .field__select,
+:root[data-phase="neutral"] .field__area {
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+:root[data-phase="neutral"] .navitem { border-radius: 12px; }
+:root[data-phase="neutral"] .navitem.is-active {
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--ink);
+}
+
+/* Развёртка кинескопа в светлой теме неуместна — гасим её */
+:root[data-phase="neutral"] .crt-scanlines,
+:root[data-phase="neutral"] .crt-mask,
+:root[data-phase="neutral"] .crt-flicker,
+:root[data-phase="neutral"] .crt-sweep,
+:root[data-phase="neutral"] .crt-noise { opacity: 0 !important; }
+
+:root[data-phase="neutral"] .crt-vignette {
+  background: radial-gradient(ellipse at 50% 40%, transparent 55%, rgba(90, 150, 200, 0.22));
+}
+
+/* ---------- Небо позади панели ---------- */
+
+.sky {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, #4aa3e0 0%, #7ec3ef 38%, #b9e0f7 68%, #e8f6ff 100%);
+}
+
+/* Облака: несколько мягких пятен, медленно плывущих поперёк */
+.sky__cloud {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 55%,
+    rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.75) 42%, rgba(255, 255, 255, 0) 70%);
+  filter: blur(6px);
+  animation: sky-drift linear infinite;
+}
+
+@keyframes sky-drift {
+  0%   { transform: translateX(-30vw); }
+  100% { transform: translateX(130vw); }
+}
+
+/* Дальний свет у горизонта — «дышит», как воздух над городом */
+.sky__glow {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 42%;
+  background: linear-gradient(0deg, rgba(255, 246, 224, 0.55), transparent 82%);
+  animation: sky-breathe 9s ease-in-out infinite;
+}
+
+@keyframes sky-breathe {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 0.9; }
+}
+
+/* Силуэт города по нижнему краю — как на кадре со сводом правил */
+.sky__city {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 12vh;
+  min-height: 60px;
+  background:
+    repeating-linear-gradient(90deg,
+      rgba(120, 165, 200, 0.55) 0 14px, transparent 14px 22px,
+      rgba(120, 165, 200, 0.40) 22px 30px, transparent 30px 52px,
+      rgba(120, 165, 200, 0.62) 52px 74px, transparent 74px 96px);
+  mask-image: linear-gradient(0deg, #000 30%, transparent 100%);
+  -webkit-mask-image: linear-gradient(0deg, #000 30%, transparent 100%);
+  opacity: 0.65;
+}
+
+/* ---------- Подтверждение участия: тревожное ожидание ---------- */
+
+:root[data-phase="confirm"] {
+  --phos:        #f2d98a;
+  --phos-hi:     #fff2c4;
+  --phos-lo:     #d4b45e;
+  --phos-deep:   #a88a38;
+
+  --ink:         #23180a;
+  --ink-2:       #372711;
+  --ink-soft:    rgba(35, 24, 10, 0.74);
+  --ink-faint:   rgba(35, 24, 10, 0.38);
+  --ink-line:    rgba(35, 24, 10, 0.28);
+
+  --bg:          #141007;
+  --bg-2:        #24190a;
+  --bg-3:        #35250f;
+  --bg-teal:     #574019;
+
+  --glow:        #ffcf5a;
+  --glow-soft:   rgba(255, 207, 90, 0.30);
+  --glow-strong: rgba(255, 207, 90, 0.55);
+}
+
+/* ---------- Активная миграция: тяжёлый, серьёзный вид ---------- */
+
+:root[data-phase="active"] {
+  --phos:        #c9ccd2;
+  --phos-hi:     #eef0f3;
+  --phos-lo:     #9aa0a9;
+  --phos-deep:   #6d737c;
+
+  --ink:         #0a0a0c;
+  --ink-2:       #16171b;
+  --ink-soft:    rgba(10, 10, 12, 0.76);
+  --ink-faint:   rgba(10, 10, 12, 0.40);
+  --ink-line:    rgba(10, 10, 12, 0.32);
+
+  --bg:          #07070a;
+  --bg-2:        #101015;
+  --bg-3:        #1a1a22;
+  --bg-teal:     #2a1c2e;
+
+  --glow:        #b4232f;
+  --glow-soft:   rgba(180, 35, 47, 0.28);
+  --glow-strong: rgba(180, 35, 47, 0.55);
+
+  --danger:      #d2222f;
+  --danger-ink:  #5c0d13;
+}
+
+/* Красно-фиолетовый отсвет по краям: миграция идёт */
+:root[data-phase="active"] .screen::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 0% 0%, rgba(180, 35, 47, 0.22), transparent 46%),
+    radial-gradient(ellipse at 100% 100%, rgba(104, 44, 160, 0.22), transparent 46%);
+  animation: phase-pulse 5.5s ease-in-out infinite;
+}
+
+@keyframes phase-pulse {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 1; }
+}
+
+/* ---------- Плашка состояния на главной ---------- */
+
+.phasebar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  padding: var(--sp-4);
+  margin-bottom: var(--sp-4);
+  border: 2px solid var(--ink-line);
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.phasebar__jp {
+  font-family: var(--font-jp);
+  font-size: var(--fs-2xl);
+  line-height: 1;
+  color: var(--ink);
+  opacity: 0.75;
+  flex-shrink: 0;
+}
+
+.phasebar__title {
+  font-family: var(--font-pixel);
+  font-size: var(--fs-lg);
+  letter-spacing: var(--tracking);
+}
+
+.phasebar__text {
+  font-size: var(--fs-xs);
+  color: var(--ink-soft);
+  line-height: var(--lh);
+}
+
+:root[data-phase="neutral"] .phasebar {
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+@media (max-width: 640px) {
+  .phasebar { flex-direction: column; align-items: flex-start; gap: var(--sp-2); }
+  .phasebar__jp { font-size: var(--fs-xl); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sky__cloud, .sky__glow, :root[data-phase="active"] .screen::before { animation: none; }
+}

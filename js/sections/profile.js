@@ -65,9 +65,29 @@ export const profile = {
               <span class="readout__key">Текущая колония <span class="jp">${JP.colony}</span></span>
               <span class="readout__val readout__val--sm jp">${colony.jp}<small>${esc(colony.ru)}</small></span>
             </div>
+            <div class="readout__item">
+              <span class="readout__key">Очков за всё время <span class="jp">総合</span></span>
+              <span class="readout__val jp">${pts(user.totalPoints || 0, 4)}</span>
+            </div>
+            <div class="readout__item">
+              <span class="readout__key">Пропущено подряд <span class="jp">不参加</span></span>
+              <span class="readout__val readout__val--sm jp">${user.missedStreak || 0}/3
+                <small>${(user.missedStreak || 0) >= 3 ? 'предел' : 'миграций'}</small></span>
+            </div>
           </div>
         </div>
       </div>
+
+      ${user.card ? `
+        <div class="panel panel--framed mt-4">
+          <div class="panel__head">
+            <span class="panel__title">Карточка мувсета</span>
+            <span class="panel__jp jp">技表</span>
+          </div>
+          <div class="panel__body">
+            <img class="cardshot" src="${user.card}" alt="Карточка персонажа из Roblox Workshop" />
+          </div>
+        </div>` : ''}
 
       <div class="cols cols--2 mt-4">
         <div class="panel">

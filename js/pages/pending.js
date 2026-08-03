@@ -16,11 +16,13 @@ import { levelById, COLONIES } from '../data/labels.js?v=11';
 import { kogane } from '../core/sprites.js?v=11';
 import { wait } from '../core/typewriter.js?v=11';
 import { events } from '../core/events.js?v=11';
+import { phase } from '../core/phase.js?v=11';
 
 crt.init();
 wireSounds();
 
 await store.init();
+phase.init();   // оформление под фазу игры
 events.init();   // оформление идущего ивента
 store.startPolling(4000);
 

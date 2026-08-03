@@ -15,7 +15,7 @@ import { api } from './api.js?v=11';
 
 const EMPTY = {
   auth: null,
-  migration: { number: 1, active: true, startedAt: Date.now(), endedAt: null, note: '' },
+  migration: { number: 1, active: false, phase: 'neutral', startedAt: Date.now(), endedAt: null, note: '' },
   event: { id: null },
   eventMusic: {},
   admins: [],
@@ -140,6 +140,31 @@ export const store = {
 
   migration() { return db.migration || EMPTY.migration; },
 
+  /**
+   * Фаза игры: neutral — между миграциями, confirm — окно подтверждения
+   * участия, active — миграция идёт. Прежнее поле active сохранено.
+   */
+  phase() {
+    const m = this.migration();
+    return m.phase || (m.active ? 'active' : 'neutral');
+  },
+
+  /** Идёт ли миграция прямо сейчас */
+  inMigration() { return this.phase() === 'active'; },
+
+  /** Сколько миллисекунд осталось на подтверждение участия */
+  confirmLeft() {
+    const m = this.migration();
+    if (this.phase() !== 'confirm') return 0;
+    return Math.max(0, Number(m.confirmUntil || 0) - Date.now());
+  },
+
+  /** Подтвердил ли участник участие в объявленной миграции */
+  confirmed(user = null) {
+    const u = user || this.auth();
+    return Boolean(u && u.joinedNo && u.joinedNo === this.migration().number);
+  },
+
   security() { return db.security || EMPTY.security; },
 
   /** Где на самом деле лежат данные — сервер сообщает это распорядителю */
@@ -172,9 +197,16 @@ export const store = {
 
   /* ---------------- Участник ---------------- */
 
-  async submitApplication(_userId, data) {
-    await api.post('/api/application', { data });
+  async submitApplication(_userId, data, card = '') {
+    await api.post('/api/application', { data, card });
     return this.refresh();
+  },
+
+  /** Принять участие в объявленной миграции */
+  async joinMigration() {
+    const res = await api.post('/api/migration/confirm');
+    await this.refresh();
+    return res;
   },
 
   async buyRule(ruleId) {
@@ -336,6 +368,13 @@ export const store = {
   async setEventMusic({ id, kind, url }) {
     await api.post('/api/admin/event/music', { id, kind, url });
     return this.refresh();
+  },
+
+  /** Закрыть окно подтверждения досрочно и начать миграцию */
+  async finishConfirm() {
+    const res = await api.post('/api/admin/migration/confirm-finish');
+    await this.refresh();
+    return res;
   },
 
   async stopEvent() {

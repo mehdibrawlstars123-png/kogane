@@ -34,14 +34,18 @@ export const migrationAdmin = {
       <div class="hero-line mb-4">
         <div class="hero-line__text">
           <div class="hero-line__jp jp chroma">死滅回游 ${mig.number}</div>
-          <div class="hero-line__title">${mig.active ? 'Миграция идёт' : 'Миграция завершена'}</div>
+          <div class="hero-line__title">${{
+            active: 'Миграция идёт',
+            confirm: 'Подтверждение участия',
+            neutral: 'Нейтральный период',
+          }[store.phase()] || 'Миграция завершена'}</div>
           <p class="hero-line__sub">
             Начало: ${dt(mig.startedAt)}${mig.endedAt ? ` · Завершение: ${dt(mig.endedAt)}` : ''}<br />
             ${esc(mig.note || 'Распоряжений нет.')}
           </p>
         </div>
         <span class="migration__state ${mig.active ? 'migration__state--on' : 'migration__state--off'}">
-          ${mig.active ? '進行中' : '終了'}
+          ${{ active: '進行中', confirm: '参加確認', neutral: '休止' }[store.phase()] || '終了'}
         </span>
       </div>
 
@@ -50,7 +54,31 @@ export const migrationAdmin = {
         <div class="tile"><span class="tile__key">В игре</span><span class="tile__val jp">${pts(alive.length)}</span></div>
         <div class="tile"><span class="tile__key">Выбыло</span><span class="tile__val jp">${pts(all.length - alive.length)}</span></div>
         <div class="tile"><span class="tile__key">Правил в своде</span><span class="tile__val jp">${pts(store.ruleHistory().length, 2)}</span></div>
+        <div class="tile"><span class="tile__key">Подтвердили участие</span><span class="tile__val jp">${
+          pts(all.filter((p) => !p.isNpc && p.joinedNo === mig.number).length, 2)}</span></div>
+        <div class="tile"><span class="tile__key">На пределе пропусков</span><span class="tile__val jp">${
+          pts(all.filter((p) => !p.isNpc && (p.missedStreak || 0) >= 3).length, 2)}</span></div>
       </div>
+
+      ${store.phase() === 'confirm' ? `
+        <div class="panel panel--framed mt-4" style="border-color:var(--phos-lo)">
+          <div class="panel__head">
+            <span class="panel__title">Идёт подтверждение участия</span>
+            <span class="panel__jp jp">参加確認</span>
+          </div>
+          <div class="panel__body">
+            <p class="fs-xs">
+              У каждого участника открыто окно с одной кнопкой «Принять участие».
+              Осталось <b id="confLeft">—</b>. По истечении срока миграция начнётся сама:
+              подтвердившие войдут в игру, остальным зачтётся пропуск.
+            </p>
+            <div class="btn-row mt-3">
+              <button class="btn btn--sm btn--primary" type="button" id="confNow">
+                Закрыть подтверждение и начать миграцию
+              </button>
+            </div>
+          </div>
+        </div>` : ''}
 
       <div class="cols cols--2 mt-4">
         <div class="panel panel--framed">
@@ -97,6 +125,41 @@ export const migrationAdmin = {
           </div>
         </div>
       </div>`;
+
+    /* Окно подтверждения: отсчёт и досрочное закрытие */
+    const left = $('#confLeft', root);
+    if (left) {
+      const tick = () => {
+        const ms = store.confirmLeft();
+        const t = Math.max(0, Math.round(ms / 1000));
+        left.textContent = `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`;
+      };
+      tick();
+      const timer = setInterval(() => {
+        if (!document.body.contains(left)) { clearInterval(timer); return; }
+        tick();
+      }, 1000);
+    }
+
+    on($('#confNow', root), 'click', async () => {
+      const ok = await modal.confirm({
+        title: 'Начать миграцию сейчас', jp: '参加確認終了',
+        text: 'Подтверждение закроется досрочно. Кто не успел нажать «Принять участие», '
+            + 'получит пропуск. Продолжить?',
+        okText: 'Начать',
+      });
+      if (!ok) return;
+
+      let missed = 0;
+      try {
+        const res = await store.finishConfirm();
+        missed = res.missed || 0;
+      } catch (err) { toast.err('Не выполнено', err.message); return; }
+
+      audio.ok();
+      toast.ok('Миграция началась', missed ? `Пропустили: ${missed}` : 'Все подтвердили участие');
+      refresh();
+    });
 
     on($('#mNoteSave', root), 'click', async () => {
       const note = $('#mNote', root).value.trim();

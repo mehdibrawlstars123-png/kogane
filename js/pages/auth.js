@@ -14,12 +14,14 @@ import { connectSequence } from '../modules/connect.js?v=11';
 import { storage } from '../utils/storage.js?v=11';
 import { trace } from '../core/trace.js?v=11';
 import { events } from '../core/events.js?v=11';
+import { phase } from '../core/phase.js?v=11';
 
 crt.init();
 wireSounds();
 
 // Состояние приходит с сервера
 await store.init().catch(() => {});
+phase.init();   // оформление под фазу игры
 events.init();   // идущий ивент виден и на экране входа
 
 // Код первого входа задан на сервере (переменная окружения ADMIN_CODE).

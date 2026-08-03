@@ -93,11 +93,23 @@ def ensure_columns() -> None:
         return
 
     have = {c["name"] for c in inspector.get_columns("users")}
-    # Собственный секретный код распорядителя: у каждого свой
-    if "code_hash" not in have:
-        added.append("users.code_hash")
+
+    # Колонка -> тип. Только добавление: существующие данные не трогаются,
+    # у прежних записей новое поле остаётся пустым и заполняется по ходу игры.
+    NEW = [
+        ("code_hash", "VARCHAR(255)"),      # личный код распорядителя
+        ("card", "TEXT"),                   # карточка мувсета из Workshop
+        ("total_points", "BIGINT DEFAULT 0"),   # очки за всё время
+        ("missed_streak", "INTEGER DEFAULT 0"), # пропущено миграций подряд
+        ("joined_no", "INTEGER"),           # номер подтверждённой миграции
+    ]
+
+    for name, kind in NEW:
+        if name in have:
+            continue
+        added.append(f"users.{name}")
         with engine.begin() as conn:
-            conn.execute(text("ALTER TABLE users ADD COLUMN code_hash VARCHAR(255)"))
+            conn.execute(text(f"ALTER TABLE users ADD COLUMN {name} {kind}"))
 
     if added:
         print(f"[kogane] columns added: {', '.join(added)}", flush=True)

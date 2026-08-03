@@ -53,6 +53,88 @@ def check(value: str, allowed: dict, what: str) -> str:
     return value
 
 
+# ==================== Фазы миграции ====================
+#
+# neutral — между миграциями: сайт открыт, но игровые действия закрыты
+# confirm — окно подтверждения участия (15 минут после запуска)
+# active  — миграция идёт
+#
+# Прежнее поле active сохранено: по нему работает весь старый интерфейс.
+# active == (phase == "active").
+
+CONFIRM_MINUTES = 15
+START_POINTS = 85
+
+
+def migration_state(session: OrmSession) -> dict:
+    """
+    Состояние миграции с закрытием просроченного окна подтверждения.
+
+    Отдельного планировщика в проекте нет, поэтому окно закрывается лениво —
+    при первом же обращении после срока. Так работает и опрос состояния,
+    и любое действие распорядителя.
+    """
+    mig = setting(session, "migration")
+    if not mig:
+        return {"number": 1, "active": False, "phase": "neutral", "note": ""}
+
+    mig.setdefault("phase", "active" if mig.get("active") else "neutral")
+
+    if mig["phase"] == "confirm" and now_ms() >= int(mig.get("confirmUntil", 0)):
+        finish_confirmation(session, mig)
+
+    mig["active"] = mig["phase"] == "active"
+    return mig
+
+
+def finish_confirmation(session: OrmSession, mig: dict) -> int:
+    """
+    Окно подтверждения закончилось: кто нажал — в игре, кто нет — пропустил.
+
+    Пропуски считаются подряд: одно подтверждённое участие обнуляет счётчик.
+    """
+    number = int(mig.get("number", 1))
+    missed = 0
+
+    for u in session.scalars(select(User).where(User.state == "approved")).all():
+        if u.role == "admin" or not u.character:
+            continue
+
+        char = dict(u.character)
+        if u.joined_no == number:
+            char["status"] = "active"
+            u.missed_streak = 0
+        else:
+            char["status"] = "out"
+            u.missed_streak = int(u.missed_streak or 0) + 1
+            missed += 1
+            notify(session, "warn", "Миграция пропущена",
+                   f"Участие в миграции №{number} не подтверждено в срок. "
+                   f"Пропусков подряд: {u.missed_streak} из 3.", u.id)
+        u.character = char
+
+    mig["phase"] = "active"
+    mig["active"] = True
+    mig["startedAt"] = now_ms()
+    save_setting(session, "migration", mig)
+
+    notify(session, "migStart", f"Миграция №{number} началась",
+           "Подтверждение участия закрыто. Барьеры развёрнуты.", "all")
+    add_log(session, "система", "migration-confirm-end",
+            f"Подтверждение к миграции №{number} закрыто. Пропустили: {missed}.", "warn")
+    session.commit()
+    return missed
+
+
+def award(user: User, delta: int) -> None:
+    """
+    Общий счёт за всё время. Складывается только заработанное:
+    списания уменьшают счёт текущей миграции, но не переписывают историю.
+    """
+    if delta > 0:
+        user.total_points = int(user.total_points or 0) + delta
+
+
 # ==================== Служебное ====================
 
 def setting(session: OrmSession, key: str) -> dict:
@@ -141,6 +223,10 @@ def participants(session: OrmSession) -> list:
             "status": c.get("status", "active"),
             "application": u.application,
             "ownedRules": u.owned_rules or [],
+            "card": u.card,
+            "totalPoints": int(u.total_points or 0),
+            "missedStreak": int(u.missed_streak or 0),
+            "joinedNo": u.joined_no,
         })
 
     for n in session.scalars(select(Npc)).all():
@@ -156,7 +242,7 @@ def build_state(session: OrmSession, user: Optional[User]) -> dict:
     security = setting(session, "security")
     state = {
         "auth": user.public(full=True) if user else None,
-        "migration": setting(session, "migration"),
+        "migration": migration_state(session),
         "security": {"codeChanged": bool(security.get("codeChanged"))},
         # Ивент виден всем, включая экран входа: оформление меняется у каждого
         "event": setting(session, "event") or {"id": None},
@@ -245,6 +331,7 @@ class AdminCredentials(Credentials):
 
 class ApplicationIn(BaseModel):
     data: dict
+    card: str = ""     # изображение карточки Workshop строкой data:
 
 
 class ApproveIn(BaseModel):
@@ -459,6 +546,16 @@ def submit_application(body: ApplicationIn, data=Depends(require_user)):
 
     payload["submittedAt"] = now_ms()
     user.application = payload
+
+    # Карточка мувсета из Workshop. Интерфейс уменьшает картинку перед
+    # отправкой, здесь только проверка: чужое сюда попасть не должно,
+    # а огромный файл раздул бы каждый ответ /api/state.
+    if body.card:
+        if not body.card.startswith("data:image/"):
+            raise HTTPException(400, "Карточка должна быть изображением")
+        if len(body.card) > 1_400_000:
+            raise HTTPException(413, "Карточка тяжелее полутора мегабайт — уменьшите изображение")
+        user.card = body.card
     user.state = "applied"
     add_log(session, user.email, "application",
             f"Анкета «{payload.get('name', '')}» отправлена на рассмотрение.")
@@ -466,11 +563,52 @@ def submit_application(body: ApplicationIn, data=Depends(require_user)):
     return {"user": user.public(full=True)}
 
 
+@router.post("/migration/confirm")
+def confirm_participation(data=Depends(require_user)):
+    """
+    Участник подтверждает участие в объявленной миграции.
+
+    Отказа нет: кнопка одна. Кто не нажал до конца окна — считается
+    пропустившим, это разбирается при закрытии окна.
+    """
+    user, session = data
+    if user.state != "approved":
+        raise HTTPException(403, "Подтверждать участие может только одобренный участник")
+
+    mig = migration_state(session)
+    if mig.get("phase") != "confirm":
+        raise HTTPException(409, "Подтверждение сейчас не идёт")
+
+    number = int(mig.get("number", 1))
+    if user.joined_no == number:
+        return {"ok": True, "already": True, "number": number}
+
+    user.joined_no = number
+    user.missed_streak = 0
+
+    char = dict(user.character or {})
+    char["status"] = "active"
+    user.character = char
+
+    add_log(session, user.email, "confirm", f"Участие в миграции №{number} подтверждено.")
+    session.commit()
+    return {"ok": True, "number": number}
+
+
 @router.post("/shop/buy")
 def buy_rule(body: BuyIn, data=Depends(require_user)):
     user, session = data
     if user.state != "approved":
         raise HTTPException(403, "Доступ к магазину только у одобренных участников")
+
+    mig = migration_state(session)
+    if mig.get("phase") != "active":
+        raise HTTPException(
+            409,
+            "Сейчас нейтральный период: правила покупаются только во время миграции"
+            if mig.get("phase") == "neutral"
+            else "Идёт подтверждение участия — магазин откроется с началом миграции",
+        )
 
     rule = session.get(ShopRule, body.ruleId)
     if not rule or rule.enabled is False:

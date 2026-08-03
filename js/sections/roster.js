@@ -5,18 +5,23 @@
 import { $, $$, on } from '../core/dom.js?v=11';
 import { store } from '../core/store.js?v=11';
 import { pts } from '../core/format.js?v=11';
-import { COLONIES, JP } from '../data/labels.js?v=11';
+import { COLONIES, JP, STATUSES } from '../data/labels.js?v=11';
 import { rosterRow, rosterCols, sortParticipants, openParticipant, defaultDir } from './shared.js?v=11';
 import { audio } from '../core/audio.js?v=11';
 
 let sort = { key: 'points', dir: -1 };
 let filter = 'all';
 
+// Какая таблица открыта: обычный реестр, лучшие в этой миграции
+// или общий счёт за всё время
+let board = 'roster';
+
 export const roster = {
   id: 'roster',
 
   render(root, { me }) {
     const draw = () => {
+      if (board !== 'roster') { drawBoard(); return; }
       let list = store.participants();
 
       if (filter === 'alive') list = list.filter((p) => p.status !== 'dead');
@@ -60,6 +65,50 @@ export const roster = {
       }));
     };
 
+    /* Таблицы лидеров: те же участники, но другой счёт и другой порядок */
+    const drawBoard = () => {
+      const body = $('#rosterBody', root);
+      const cols = $('#rosterCols', root);
+      const count = $('#rosterCount', root);
+
+      const всеВремя = board === 'all';
+      const list = store.participants()
+        .map((p) => ({ ...p, score: всеВремя ? (p.totalPoints || 0) : (p.points || 0) }))
+        .filter((p) => (всеВремя ? p.score > 0 : true))
+        .sort((a, b) => b.score - a.score || a.name.localeCompare(b.name, 'ru'));
+
+      cols.innerHTML = `
+        <div class="lb__cols">
+          <span>Место</span><span>Участник</span>
+          <span style="text-align:right">${всеВремя ? 'Всего очков' : 'Очки миграции'}</span>
+        </div>`;
+
+      count.textContent = `Записей: ${pts(list.length, 3)}`;
+
+      body.innerHTML = list.length ? list.map((p, i) => `
+        <button class="lb__row ${p.id === me.id ? 'is-me' : ''} ${i < 3 ? `is-top is-top${i + 1}` : ''}"
+                type="button" data-id="${p.id}">
+          <span class="lb__place jp">${String(i + 1).padStart(2, '0')}</span>
+          <span class="lb__name">
+            ${p.name}
+            <span class="lb__meta">${(STATUSES[p.status] || STATUSES.active).ru}${
+              p.isNpc ? ' · запись реестра' : ''}</span>
+          </span>
+          <span class="lb__score jp">${pts(p.score, 4)}</span>
+        </button>`).join('')
+        : `<div class="empty">
+             <span class="jp-big">空</span>
+             ${всеВремя
+               ? 'Общий счёт пока пуст: очки появятся после первых начислений'
+               : 'В этой миграции очков ещё нет'}
+           </div>`;
+
+      $$('.lb__row', body).forEach((row) => on(row, 'click', () => {
+        audio.click();
+        openParticipant(row.dataset.id);
+      }));
+    };
+
     root.innerHTML = `
       <div class="sec-head">
         <span class="sec-head__no jp">02</span>
@@ -73,7 +122,19 @@ export const roster = {
           <span class="roster__count" id="rosterCount">—</span>
         </div>
 
-        <div class="roster__bar">
+        <div class="lb__tabs">
+          <button class="lb__tab ${board === 'roster' ? 'is-active' : ''}" type="button" data-board="roster">
+            Реестр <span class="jp">泳者一覧</span>
+          </button>
+          <button class="lb__tab ${board === 'current' ? 'is-active' : ''}" type="button" data-board="current">
+            Лучшие в этой миграции <span class="jp">今回</span>
+          </button>
+          <button class="lb__tab ${board === 'all' ? 'is-active' : ''}" type="button" data-board="all">
+            Лучшие за всё время <span class="jp">総合</span>
+          </button>
+        </div>
+
+        <div class="roster__bar" ${''}>
           <button class="chip is-active" type="button" data-filter="all">Все</button>
           <button class="chip" type="button" data-filter="alive">В игре</button>
           <button class="chip" type="button" data-filter="dead">Выбывшие</button>
@@ -101,11 +162,24 @@ export const roster = {
       draw();
     }));
 
+    $$('[data-board]', root).forEach((b) => on(b, 'click', () => {
+      board = b.dataset.board;
+      audio.click();
+      // Фильтры и сортировка относятся только к обычному реестру
+      $$('[data-board]', root).forEach((x) => x.classList.toggle('is-active', x === b));
+      const bar = $('.roster__bar', root);
+      if (bar) bar.hidden = board !== 'roster';
+      draw();
+    }));
+
     on($('#colonyFilter', root), 'change', (e) => {
       filter = e.target.value === 'all' ? 'all' : e.target.value;
       $$('[data-filter]', root).forEach((c) => c.classList.remove('is-active'));
       draw();
     });
+
+    const bar = $('.roster__bar', root);
+    if (bar) bar.hidden = board !== 'roster';
 
     draw();
     return root;

@@ -15,6 +15,8 @@ import { colonyById } from '../data/labels.js?v=11';
 import { checkDeath, hideDeathScreen } from '../modules/death.js?v=11';
 import { shownToasts } from '../core/notify.js?v=11';
 import { events } from '../core/events.js?v=11';
+import { phase } from '../core/phase.js?v=11';
+import { checkConfirm } from '../modules/confirm.js?v=11';
 
 import { home } from '../sections/home.js?v=11';
 import { profile } from '../sections/profile.js?v=11';
@@ -30,6 +32,7 @@ wireSounds();
 
 // Состояние приходит с сервера, поэтому загрузка ожидается до отрисовки
 await store.init();
+phase.init();   // оформление под фазу игры
 events.init();   // оформление идущего ивента
 store.startPolling(4000);
 
@@ -275,6 +278,11 @@ function watch() {
     refresh();
   }
 }
+
+// Окно подтверждения участия: появляется, как только распорядитель
+// объявил миграцию, и снимается после подтверждения или по истечении срока
+checkConfirm();
+bus.on(EV.dbChange, () => checkConfirm());
 
 bus.on(EV.dbSync, watch);
 bus.on(EV.dbChange, () => paintHead());

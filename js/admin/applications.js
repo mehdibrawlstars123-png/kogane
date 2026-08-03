@@ -75,6 +75,7 @@ export const applications = {
                 ${a.roblox ? ` · Roblox: ${esc(a.roblox)}` : ''}
                 ${a.discord ? ` · Discord: ${esc(a.discord)}` : ''}
                 · ${STATE[u.state] || u.state}
+                ${u.card ? '· <b>карточка есть</b>' : '· без карточки'}
                 ${a.submittedAt ? ` · подана ${ago(a.submittedAt)}` : ''}
               </div>
             </span>
@@ -155,7 +156,20 @@ function openApplication(u, ctx) {
         <span class="datarow__key">Имя кандзи / каной</span>
         <span class="datarow__val jp">${esc(a.nameJp)}</span>
       </div>` : ''}
-      ${applicationBlock(a)}`,
+      ${applicationBlock(a)}
+
+      <!-- Карточка мувсета из Workshop: смотрится рядом с ответами анкеты -->
+      ${u.card ? `
+        <div class="panel panel--framed mt-4">
+          <div class="panel__head">
+            <span class="panel__title">Карточка мувсета</span>
+            <span class="panel__jp jp">技表</span>
+          </div>
+          <div class="panel__body">
+            <img class="cardshot" src="${u.card}" alt="Карточка персонажа из Roblox Workshop" />
+          </div>
+        </div>`
+        : '<p class="mt-4 fs-xxs muted mono">Карточка мувсета не приложена.</p>'}`,
     foot: u.state === 'applied' ? `
       <button class="btn btn--sm btn--ghost" type="button" data-close>Закрыть</button>
       <button class="btn btn--sm btn--danger" type="button" id="mReject">Отклонить</button>

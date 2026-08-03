@@ -32,6 +32,15 @@ class User(Base):
     death_reason = Column(Text)
     dead_migration = Column(Integer)
 
+    # Карточка мувсета из Roblox Workshop: картинка хранится строкой data:
+    # прямо в базе. На Railway файловая система контейнера стирается при
+    # каждом развёртывании, поэтому складывать картинки в файлы нельзя.
+    card = Column(Text)
+
+    total_points = Column(BigInteger, default=0)   # очки за всё время, между миграциями
+    missed_streak = Column(Integer, default=0)     # пропущено миграций подряд
+    joined_no = Column(Integer)                    # номер миграции, участие в которой подтвердил
+
     application = Column(JSON)     # анкета персонажа
     character = Column(JSON)       # имя, уровень, очки, колония, статус
     owned_rules = Column(JSON, default=list)
@@ -51,6 +60,10 @@ class User(Base):
             "application": self.application,
             "character": self.character,
             "ownedRules": self.owned_rules or [],
+            "card": self.card,
+            "totalPoints": int(self.total_points or 0),
+            "missedStreak": int(self.missed_streak or 0),
+            "joinedNo": self.joined_no,
         }
         if self.role == "admin":
             data["name"] = (self.character or {}).get("name") or self.email

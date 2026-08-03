@@ -12,6 +12,7 @@ from .api import (
     router as _base, require_admin, add_log, notify, setting, save_setting,
     find_participant, char_of, apply_char, participants, build_state,
     COLONY_NAMES, LEVEL_NAMES, STATUS_NAMES, check,
+    migration_state, finish_confirmation, award, CONFIRM_MINUTES, START_POINTS,
     ApproveIn, RejectIn, PatchParticipant, PointsIn, RuleGrant, MassIn,
     ShopRuleIn, NoticeIn, BroadcastIn, MigrationIn, SecurityIn,
     EventIn, EventMusicIn, AdminIn, AdminPatch,
@@ -139,6 +140,8 @@ def change_points(pid: str, body: PointsIn, data=Depends(require_admin)):
     total = max(0, body.value) if body.value is not None else max(0, current + (body.delta or 0))
     delta = total - current
     apply_char(target, is_npc, {"points": total})
+    if not is_npc:
+        award(target, delta)
 
     if not is_npc and delta:
         kind = "points" if delta > 0 else "penalty"
@@ -313,6 +316,8 @@ def mass_action(body: MassIn, data=Depends(require_admin)):
             total = current + body.amount
             apply_char(obj, is_npc, {"points": total})
             if not is_npc:
+                award(obj, body.amount)
+            if not is_npc:
                 notify(session, "points", "Начисление очков",
                        f"Зачислено {body.amount} очков. Текущий счёт: {total}. "
                        "Основание: массовое начисление.", obj.id)
@@ -447,29 +452,58 @@ def start_migration(body: MigrationIn, data=Depends(require_admin)):
     admin, session = data
     mig = setting(session, "migration")
     number = int(mig.get("number", 0)) + 1
+    until = now_ms() + CONFIRM_MINUTES * 60_000
 
+    # Миграция начинается не сразу: сперва окно подтверждения участия.
     save_setting(session, "migration", {
-        "number": number, "active": True, "startedAt": now_ms(),
-        "endedAt": None, "note": body.note,
+        "number": number, "active": False, "phase": "confirm",
+        "startedAt": now_ms(), "confirmUntil": until, "endedAt": None,
+        "note": body.note, "startPoints": START_POINTS,
     })
 
     for u in session.scalars(select(User).where(User.state == "approved")).all():
         if not u.character:
             continue
         char = dict(u.character)
-        char["status"] = "out" if u.role == "admin" else "active"
+        if u.role == "admin":
+            char["status"] = "out"
+        else:
+            # Счёт текущей миграции обнуляется до стартового, общий — копится
+            char["status"] = "pending"
+            char["points"] = START_POINTS
+            char["rules"] = 0
         u.character = char
+        u.owned_rules = []
         u.death_reason = None
         u.dead_migration = None
+        u.joined_no = None
 
     for n in session.scalars(select(Npc).where(Npc.status == "frozen")).all():
         n.status = "active"
 
-    notify(session, "migStart", f"Миграция №{number} начата",
-           "Барьеры развёрнуты. Все участники обязаны объявить о начале игры в течение 19 дней.", "all")
-    add_log(session, admin.email, "migration-start", f"Миграция №{number} начата.")
+    notify(session, "migStart", f"Миграция №{number} объявлена",
+           f"Подтвердите участие в течение {CONFIRM_MINUTES} минут. "
+           f"Стартовый счёт — {START_POINTS} очков. "
+           "Кто не подтвердит, пропускает миграцию.", "all")
+    add_log(session, admin.email, "migration-start",
+            f"Миграция №{number} объявлена, подтверждение {CONFIRM_MINUTES} мин.")
     session.commit()
-    return {"ok": True, "number": number}
+    return {"ok": True, "number": number, "confirmUntil": until}
+
+
+@router.post("/migration/confirm-finish")
+def confirm_finish(data=Depends(require_admin)):
+    """Закрыть окно подтверждения досрочно и начать миграцию."""
+    admin, session = data
+    mig = migration_state(session)
+    if mig.get("phase") != "confirm":
+        raise HTTPException(409, "Подтверждение сейчас не идёт")
+
+    missed = finish_confirmation(session, mig)
+    add_log(session, admin.email, "migration-confirm-force",
+            f"Подтверждение закрыто досрочно. Пропустили: {missed}.", "warn")
+    session.commit()
+    return {"ok": True, "missed": missed}
 
 
 @router.post("/migration/end")
@@ -478,20 +512,29 @@ def end_migration(body: MigrationIn, data=Depends(require_admin)):
     mig = setting(session, "migration")
     number = int(mig.get("number", 1))
 
-    mig.update({"active": False, "endedAt": now_ms(), "note": body.note or mig.get("note", "")})
+    mig.update({
+        "active": False, "phase": "neutral", "endedAt": now_ms(),
+        "note": body.note or mig.get("note", ""),
+    })
     save_setting(session, "migration", mig)
 
+    # Участники выходят из барьера, но не объявляются погибшими: после
+    # миграции начинается нейтральный период, и сайт должен остаться
+    # открытым — профиль, таблицы и уведомления доступны.
+    # Экран выбывания остаётся за отдельным решением распорядителя
+    # («Объявить выбывшим») и за массовым действием.
     for u in session.scalars(select(User).where(User.state == "approved")).all():
         if u.role == "admin" or not u.character:
             continue
         char = dict(u.character)
-        char["status"] = "dead"
+        char["status"] = "out"
         u.character = char
-        u.dead_migration = number
-        u.death_reason = f"{body.note} Миграция №{number} завершена." if body.note else ""
+        u.dead_migration = None
+        u.death_reason = None
 
     notify(session, "migEnd", f"Миграция №{number} завершена",
-           "Барьеры свёрнуты. Все участники, находившиеся внутри, признаны выбывшими.", "all")
+           "Барьеры свёрнуты. Начался нейтральный период: сайт открыт, "
+           "но игровые действия закрыты до объявления следующей миграции.", "all")
     add_log(session, admin.email, "migration-end", f"Миграция №{number} завершена. {body.note}", "danger")
     session.commit()
     return {"ok": True}

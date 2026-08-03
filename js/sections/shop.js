@@ -31,6 +31,18 @@ export const shop = {
         <span class="sec-head__jp jp">${JP.ruleShop}</span>
       </div>
 
+      ${!store.inMigration() ? `
+        <div class="phasebar">
+          <span class="phasebar__jp jp">${store.phase() === 'confirm' ? '参加確認' : '休止期間'}</span>
+          <span>
+            <div class="phasebar__title">Магазин закрыт</div>
+            <p class="phasebar__text">${store.phase() === 'confirm'
+              ? 'Идёт подтверждение участия. Покупка правил откроется, когда миграция начнётся.'
+              : 'Сейчас нейтральный период. Правила покупаются только во время миграции — '
+                + 'дождитесь объявления распорядителя.'}</p>
+          </span>
+        </div>` : ''}
+
       <div class="hero-line mb-4">
         <div class="hero-line__text">
           <div class="hero-line__title">Добавление правила стоит 100 очков</div>
@@ -94,6 +106,14 @@ export const shop = {
     $$('[data-buy]', root).forEach((btn) => on(btn, 'click', async () => {
       const rule = store.shopRules().find((r) => r.id === btn.dataset.buy);
       if (!rule) return;
+
+      if (!store.inMigration()) {
+        audio.err();
+        toast.err('Магазин закрыт', store.phase() === 'confirm'
+          ? 'Подтвердите участие и дождитесь начала миграции'
+          : 'Сейчас нейтральный период');
+        return;
+      }
 
       const fresh = store.userById(user.id);
       if (!fresh) return; // сессия оборвалась — страница уже уходит на вход

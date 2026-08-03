@@ -10,6 +10,7 @@ import { audio } from '../core/audio.js?v=11';
 import { bus, EV } from '../core/bus.js?v=11';
 import { wireSounds, headTools, wireNav } from '../core/ui.js?v=11';
 import { events } from '../core/events.js?v=11';
+import { phase } from '../core/phase.js?v=11';
 
 import { dash } from '../admin/dash.js?v=11';
 import { applications } from '../admin/applications.js?v=11';
@@ -29,6 +30,7 @@ const admin = auth.guard({ need: 'admin' });
 if (!admin) throw new Error('нет доступа');
 
 // Оформление идущего ивента — распорядитель видит его наравне со всеми
+phase.init();   // оформление под фазу игры
 events.init();
 
 const PANELS = {

@@ -22,11 +22,45 @@ export const home = {
     const st = STATUSES[me.status] || STATUSES.active;
     const declare = daysLeft(mig.startedAt, 19);
 
+    // Плашка состояния: между миграциями сайт открыт, но игра не идёт
+    const PHASES = {
+      neutral: {
+        jp: '休止期間',
+        title: 'Сейчас идёт нейтральный период',
+        text: 'Следующая миграция ещё не началась. Ожидайте объявления распорядителя. '
+            + 'Профиль, таблицы, статистика и уведомления открыты; '
+            + 'покупка правил и начисление игровых очков — нет.',
+      },
+      confirm: {
+        jp: '参加確認',
+        title: `Миграция №${mig.number} объявлена`,
+        text: 'Идёт подтверждение участия. Нажмите «Принять участие» в окне на экране: '
+            + 'кто не подтвердит в срок, пропускает эту миграцию.',
+      },
+      active: {
+        jp: '進行中',
+        title: `Миграция №${mig.number} идёт`,
+        text: 'Барьеры развёрнуты, игровые механики открыты. '
+            + 'Объявите о начале игры в течение девятнадцати дней.',
+      },
+    };
+    const ph = PHASES[store.phase()] || PHASES.neutral;
+
     root.innerHTML = `
+      <div class="phasebar">
+        <span class="phasebar__jp jp">${ph.jp}</span>
+        <span>
+          <div class="phasebar__title">${ph.title}</div>
+          <p class="phasebar__text">${ph.text}</p>
+        </span>
+      </div>
+
       <div class="hero-line scan">
         <div class="hero-line__text">
           <div class="hero-line__jp jp chroma">死滅回游</div>
-          <div class="hero-line__title">Миграция №${mig.number} — ${mig.active ? 'идёт' : 'завершена'}</div>
+          <div class="hero-line__title">Миграция №${mig.number} — ${
+            { active: 'идёт', confirm: 'подтверждение участия', neutral: 'нейтральный период' }[store.phase()]
+            || 'завершена'}</div>
           <p class="hero-line__sub" id="homeIntro"></p>
         </div>
         <div>${kogane()}</div>

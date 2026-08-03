@@ -12,6 +12,7 @@
 /* Effects */
 @import url("effects/crt.css?v=11");
 @import url("effects/glitch.css?v=11");
+@import url("effects/phases.css?v=11");
 @import url("effects/events.css?v=11");
 
 /* Layout */
@@ -32,6 +33,7 @@
 @import url("components/boot.css?v=11");
 @import url("components/sprite.css?v=11");
 @import url("components/volume.css?v=11");
+@import url("components/board.css?v=11");
 
 /* Pages */
 @import url("pages/auth.css?v=11");

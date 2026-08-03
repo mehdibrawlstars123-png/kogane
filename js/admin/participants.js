@@ -75,7 +75,8 @@ export const participants = {
           </label>
           <div class="editor__list">
             ${list.map((p) => `
-              <button class="editor__item ${p.id === selected ? 'is-active' : ''}" type="button" data-sel="${p.id}">
+              <button class="editor__item ${p.id === selected ? 'is-active' : ''} ${
+              !p.isNpc && (p.missedStreak || 0) >= 3 ? 'is-warned' : ''}" type="button" data-sel="${p.id}">
                 ${esc(p.name)}
                 <small>${pts(p.points)} очк · ${colonyById(p.colony).ru} · ${p.isNpc ? 'реестр' : 'игрок'}${p.status === 'dead' ? ' · выбыл' : ''}</small>
               </button>`).join('') || '<div class="empty">Не найдено</div>'}
@@ -214,6 +215,10 @@ function paintPane(root, ctx, self) {
         <div class="fs-base">${esc(p.name)} <span class="jp muted">${esc(p.nameJp || '')}</span></div>
         <div class="fs-xxs muted mono">
           ${p.isNpc ? 'запись реестра (NPC)' : `игрок · ${esc(store.userById(p.id)?.email || '')}`}
+          ${p.isNpc ? '' : ` · пропусков ${p.missedStreak || 0}/3`
+            + (store.phase() === 'confirm'
+                ? (p.joinedNo === store.migration().number ? ' · участие подтверждено' : ' · ждём подтверждения')
+                : '')}
         </div>
       </div>
       <button class="btn btn--sm btn--ghost" type="button" id="pCard">Карточка</button>

@@ -1,0 +1,282 @@
+/* =========================================================
+   Новые блоки обновления:
+   карточка мувсета, таблицы лидеров, окно подтверждения участия
+   ========================================================= */
+
+/* ---------- Загрузка карточки в анкете ---------- */
+
+.cardpick {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 240px);
+  gap: var(--sp-4);
+  align-items: start;
+  margin-top: var(--sp-2);
+}
+
+.cardpick__preview {
+  display: grid;
+  place-items: center;
+  gap: var(--sp-2);
+  min-height: 190px;
+  padding: var(--sp-3);
+  border: 2px dashed var(--ink-faint);
+  background: rgba(12, 21, 3, 0.06);
+  text-align: center;
+}
+
+.cardpick__preview.is-filled {
+  border-style: solid;
+  padding: var(--sp-2);
+  background: rgba(12, 21, 3, 0.12);
+}
+
+.cardpick__empty {
+  font-family: var(--font-jp);
+  font-size: var(--fs-2xl);
+  color: var(--ink-faint);
+  line-height: 1;
+}
+
+.cardpick__hint {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xxs);
+  color: var(--ink-soft);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.cardpick__img {
+  display: block;
+  max-width: 100%;
+  max-height: 320px;
+  object-fit: contain;
+  /* Карточка из игры — пиксельная: не размываем её при масштабе */
+  image-rendering: auto;
+}
+
+.cardpick__side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+/* Готовая карточка в профиле и в окне рассмотрения анкеты */
+.cardshot {
+  display: block;
+  width: 100%;
+  max-height: 460px;
+  object-fit: contain;
+  background: rgba(12, 21, 3, 0.1);
+  border: 1px solid var(--ink-line);
+}
+
+@media (max-width: 640px) {
+  .cardpick { grid-template-columns: 1fr; }
+  .cardpick__preview { min-height: 150px; }
+}
+
+/* ---------- Таблицы лидеров ---------- */
+
+.lb__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-3);
+}
+
+.lb__tab {
+  flex: 1 1 auto;
+  padding: var(--sp-2) var(--sp-3);
+  border: 2px solid var(--ink-line);
+  background: transparent;
+  color: var(--ink-soft);
+  font-family: var(--font-pixel);
+  font-size: var(--fs-xxs);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background var(--dur-2) var(--ease), color var(--dur-2) var(--ease);
+}
+
+.lb__tab .jp {
+  font-family: var(--font-jp);
+  opacity: 0.7;
+  margin-left: var(--sp-1);
+}
+
+.lb__tab:hover { background: rgba(12, 21, 3, 0.08); color: var(--ink); }
+
+.lb__tab.is-active {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--phos-hi);
+}
+
+.lb__cols,
+.lb__row {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) 110px;
+  gap: var(--sp-3);
+  align-items: center;
+}
+
+.lb__cols {
+  padding: var(--sp-2) var(--sp-3);
+  border-bottom: 2px solid var(--ink-line);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.lb__row {
+  width: 100%;
+  padding: var(--sp-2) var(--sp-3);
+  border: 0;
+  border-bottom: 1px dashed var(--ink-faint);
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--dur-2) var(--ease);
+}
+
+.lb__row:hover { background: rgba(12, 21, 3, 0.10); }
+.lb__row.is-me { background: rgba(12, 21, 3, 0.16); }
+
+.lb__place {
+  font-family: var(--font-jp);
+  font-size: var(--fs-lg);
+  color: var(--ink-faint);
+  text-align: center;
+}
+
+/* Тройка лидеров выделяется, как на табло */
+.lb__row.is-top .lb__place { color: var(--ink); }
+.lb__row.is-top1 .lb__place { font-size: var(--fs-xl); text-shadow: 0 0 12px var(--glow-strong); }
+.lb__row.is-top2 .lb__place { font-size: var(--fs-lg); }
+
+.lb__name {
+  display: block;
+  font-family: var(--font-pixel);
+  font-size: var(--fs-sm);
+  min-width: 0;
+}
+
+.lb__meta {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.lb__score {
+  font-family: var(--font-jp);
+  font-size: var(--fs-lg);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 560px) {
+  .lb__cols, .lb__row { grid-template-columns: 46px minmax(0, 1fr) 78px; gap: var(--sp-2); }
+  .lb__score { font-size: var(--fs-base); }
+  .lb__tab { flex: 1 1 100%; }
+}
+
+/* Участник на пределе пропусков — виден в списке распорядителя */
+.editor__item.is-warned { box-shadow: inset 3px 0 0 var(--danger); }
+
+/* ---------- Окно подтверждения участия ---------- */
+
+.joinscr {
+  position: fixed;
+  inset: 0;
+  z-index: 300;              /* выше окон и тостов, ниже экрана выбывания */
+  display: grid;
+  place-items: center;
+  padding: var(--sp-4);
+  background: rgba(4, 12, 2, 0.86);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  animation: join-in var(--dur-3) var(--ease-crt) both;
+}
+
+@keyframes join-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.joinscr__win {
+  width: min(560px, 100%);
+  display: grid;
+  justify-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-6) var(--sp-5);
+  text-align: center;
+  background: linear-gradient(180deg, var(--phos-hi), var(--phos) 30%, var(--phos-lo));
+  border: 2px solid var(--ink);
+  box-shadow: 0 0 60px var(--glow-soft);
+  animation: join-win var(--dur-4) var(--ease-crt) both;
+}
+
+@keyframes join-win {
+  from { transform: scale(0.94) translateY(12px); opacity: 0; }
+  to   { transform: none; opacity: 1; }
+}
+
+.joinscr__jp {
+  font-family: var(--font-jp);
+  font-size: var(--fs-2xl);
+  line-height: 1;
+  color: var(--ink);
+  letter-spacing: 0.12em;
+}
+
+.joinscr__title {
+  font-family: var(--font-pixel);
+  font-size: var(--fs-xl);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+}
+
+.joinscr__text {
+  font-size: var(--fs-xs);
+  line-height: var(--lh);
+  max-width: 46ch;
+}
+
+.joinscr__warn {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xxs);
+  line-height: var(--lh);
+  max-width: 46ch;
+  color: var(--danger-ink);
+}
+
+/* Отсчёт: чем меньше остаётся, тем заметнее */
+.joinscr__clock {
+  font-family: var(--font-jp);
+  font-size: var(--fs-3xl);
+  line-height: 1;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  animation: join-tick 1s steps(2, end) infinite;
+}
+
+@keyframes join-tick {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.72; }
+}
+
+@media (max-width: 640px) {
+  .joinscr__win { padding: var(--sp-4) var(--sp-3); }
+  .joinscr__title { font-size: var(--fs-lg); }
+  .joinscr__clock { font-size: var(--fs-2xl); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .joinscr, .joinscr__win, .joinscr__clock { animation: none; }
+}

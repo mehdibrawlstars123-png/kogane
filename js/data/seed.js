@@ -24,8 +24,9 @@ export const APPLICATION_SCHEMA = [
       { key: 'roblox',    label: 'Ник в Roblox',      type: 'text',  required: true,  max: 40 },
       { key: 'discord',   label: 'Ник в Discord',     type: 'text',  required: true,  max: 40,
         hint: 'Например: nickname или nickname#0001' },
-      { key: 'nameJp',    label: 'Имя кандзи / каной', type: 'text', required: false, max: 20,
-        hint: 'Необязательно. Показывается в таблице под именем' },
+      { key: 'card',      label: 'Карточка мувсета из Roblox Workshop', type: 'card', required: true,
+        hint: 'Снимок карточки вашего персонажа. Распорядитель видит её при рассмотрении анкеты, '
+            + 'после одобрения она остаётся в профиле' },
     ],
   },
 ];

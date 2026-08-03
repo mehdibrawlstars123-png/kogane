@@ -15,12 +15,14 @@ import { levelOptions, COLONIES } from '../data/labels.js?v=11';
 import { storage } from '../utils/storage.js?v=11';
 import { wait } from '../core/typewriter.js?v=11';
 import { events } from '../core/events.js?v=11';
+import { phase } from '../core/phase.js?v=11';
 import { debounce } from '../utils/helpers.js?v=11';
 
 crt.init();
 wireSounds();
 
 await store.init();
+phase.init();   // оформление под фазу игры
 events.init();   // оформление идущего ивента
 
 const user = auth.guard({ need: 'auth' });
@@ -54,6 +56,106 @@ const savedDraft = storage.get(DRAFT, null);
 let draft = filled(savedDraft) ? savedDraft : (user.application || {});
 let current = 0;
 
+// Карточка мувсета из Workshop. Если анкету уже подавали, показываем прежнюю:
+// после отказа участник правит замечания, а не ищет картинку заново.
+let card = user.card || '';
+
+/* ---------------- Карточка персонажа ----------------
+
+   Снимок с телефона может весить десять мегабайт. Такое нельзя ни хранить
+   в базе, ни отдавать в каждом ответе состояния, поэтому картинка
+   уменьшается прямо в браузере: длинная сторона до 1100 точек, JPEG.  */
+
+const CARD_MAX_SIDE = 1100;
+const CARD_MAX_BYTES = 1_200_000;
+
+function readImage(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error('Файл не похож на изображение'));
+      img.src = reader.result;
+    };
+    reader.onerror = () => reject(new Error('Файл не прочитался'));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function shrink(file) {
+  const img = await readImage(file);
+  const scale = Math.min(1, CARD_MAX_SIDE / Math.max(img.width, img.height));
+  const w = Math.max(1, Math.round(img.width * scale));
+  const h = Math.max(1, Math.round(img.height * scale));
+
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+
+  // Подбираем качество, пока не уложимся в разрешённый размер
+  for (const q of [0.86, 0.72, 0.6, 0.48]) {
+    const out = canvas.toDataURL('image/jpeg', q);
+    if (out.length <= CARD_MAX_BYTES) return out;
+  }
+  throw new Error('Изображение слишком тяжёлое даже после сжатия');
+}
+
+function paintCard() {
+  const preview = $('#cardPreview');
+  const clear = $('#cardClear');
+  if (!preview) return;
+
+  if (card) {
+    preview.innerHTML = `<img class="cardpick__img" src="${card}" alt="Карточка персонажа" />`;
+    preview.classList.add('is-filled');
+    if (clear) clear.hidden = false;
+  } else {
+    preview.innerHTML = '<span class="cardpick__empty jp">画像</span>'
+                      + '<span class="cardpick__hint">Карточка не выбрана</span>';
+    preview.classList.remove('is-filled');
+    if (clear) clear.hidden = true;
+  }
+}
+
+function wireCard() {
+  const input = $('#cardFile');
+  if (!input) return;
+
+  on($('#cardBtn'), 'click', () => input.click());
+
+  on(input, 'change', async () => {
+    const file = input.files && input.files[0];
+    input.value = '';
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.err('Не изображение', 'Подойдёт PNG или JPG');
+      return;
+    }
+
+    try {
+      card = await shrink(file);
+    } catch (err) {
+      audio.err();
+      toast.err('Карточка не принята', err.message);
+      return;
+    }
+
+    audio.ok();
+    paintCard();
+    toast.ok('Карточка загружена', 'Распорядитель увидит её вместе с анкетой');
+  });
+
+  on($('#cardClear'), 'click', () => {
+    card = '';
+    paintCard();
+  });
+
+  paintCard();
+}
+
 /* ---------------- Построение полей ---------------- */
 
 function fieldMarkup(f) {
@@ -68,6 +170,29 @@ function fieldMarkup(f) {
   const wide = ['area', 'check'].includes(f.type) ? ' field--wide' : '';
 
   switch (f.type) {
+    case 'card':
+      // Картинка не уходит в общий сбор значений: она тяжёлая и хранится
+      // отдельным полем. Здесь только предпросмотр и кнопка выбора файла.
+      return `<div class="field field--wide" data-key="${f.key}">
+        ${label}
+        <div class="cardpick" id="cardPick">
+          <div class="cardpick__preview" id="cardPreview">
+            <span class="cardpick__empty jp">画像</span>
+            <span class="cardpick__hint">Карточка не выбрана</span>
+          </div>
+          <div class="cardpick__side">
+            <input type="file" id="cardFile" accept="image/*" hidden />
+            <button class="btn btn--sm btn--primary" type="button" id="cardBtn">Выбрать изображение</button>
+            <button class="btn btn--sm btn--ghost" type="button" id="cardClear" hidden>Убрать</button>
+            <p class="fs-xxs muted mono">
+              PNG или JPG. Снимок уменьшается автоматически, ничего сжимать заранее не нужно.
+            </p>
+          </div>
+        </div>
+        ${hint}
+        <span class="field__error"></span>
+      </div>`;
+
     case 'area':
       return `<label class="field${wide}" data-key="${f.key}" for="${id}">
         ${label}
@@ -197,6 +322,7 @@ function showStep(index) {
 function collect() {
   const data = {};
   APPLICATION_SCHEMA.forEach((s) => s.fields.forEach((f) => {
+    if (f.type === 'card') return;   // изображение отправляется отдельным полем
     const el = $(`[name="${f.key}"]`);
     if (!el) return;
     data[f.key] = f.type === 'check' ? el.checked : el.value.trim();
@@ -213,6 +339,16 @@ function validateStep(index, { silent = false } = {}) {
 
   schema.fields.forEach((f) => {
     const wrapEl = $(`.fset[data-fset="${index}"] [data-key="${f.key}"]`);
+
+    if (f.type === 'card') {
+      const errEl = wrapEl?.querySelector('.field__error');
+      const пусто = f.required && !card;
+      if (errEl && !silent) errEl.textContent = пусто ? 'Загрузите карточку персонажа' : '';
+      wrapEl?.classList.toggle('has-error', Boolean(пусто) && !silent);
+      if (пусто) ok = false;
+      return;
+    }
+
     const el = $(`[name="${f.key}"]`);
     const errEl = wrapEl?.querySelector('.field__error');
     if (!el || !wrapEl) return;
@@ -249,6 +385,7 @@ const save = debounce(() => {
 /* ---------------- События ---------------- */
 
 build();
+wireCard();
 showStep(0);
 
 on($('#appForm'), 'input', save);
@@ -291,7 +428,7 @@ on($('#appForm'), 'submit', async (e) => {
   const data = collect();
 
   try {
-    await store.submitApplication(user.id, data);
+    await store.submitApplication(user.id, data, card);
   } catch (err) {
     btn.classList.remove('is-busy');
     audio.err();
