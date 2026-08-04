@@ -100,39 +100,105 @@
 
 .evfx__layer { position: absolute; inset: 0; }
 
-/* ---- Сукуна: полосы рассечения и пульс жара ---- */
+/* ---- Сукуна: следы рассечения ----
 
-.evfx--sukuna .evfx__slash {
+   Раньше это была полоса-градиент, проступающая по прозрачности —
+   читалось как блик, а не как удар. Теперь каждый разрез «прочерчивается»
+   от края к краю: раскрытая рана с белым краем внутри, за ней остаточное
+   свечение. Четыре следа идут очередью, как один взмах.
+   ---------------------------------------------------------------- */
+
+.evfx--sukuna .evfx__cut {
   position: absolute;
-  top: -30%;
-  left: -10%;
-  width: 130%;
-  height: 160%;
-  background: linear-gradient(
-    105deg,
-    transparent 0 42%,
-    rgba(255, 120, 80, 0.55) 42.4% 43%,
-    transparent 43.4% 100%
-  );
-  mix-blend-mode: screen;
-  opacity: 0;
-  animation: ev-slash 6.5s ease-in-out infinite;
+  top: 50%;
+  left: -12%;
+  width: 124%;
+  height: 3px;
+  transform-origin: 0 50%;
+  transform: rotate(-24deg) scaleX(0);
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(255, 120, 70, 0.85) 6%,
+    rgba(255, 245, 235, 0.98) 32%,
+    rgba(255, 245, 235, 0.98) 62%,
+    rgba(255, 120, 70, 0.85) 92%,
+    transparent 100%);
+  box-shadow:
+    0 0 12px 2px rgba(255, 110, 60, 0.85),
+    0 0 40px 8px rgba(255, 60, 20, 0.45);
+  animation: ev-cut 7s cubic-bezier(0.2, 0.9, 0.1, 1) infinite;
 }
 
-.evfx--sukuna .evfx__slash:nth-child(2) { animation-delay: 0.16s; transform: translateX(46px); }
-.evfx--sukuna .evfx__slash:nth-child(3) { animation-delay: 0.32s; transform: translateX(92px); }
-.evfx--sukuna .evfx__slash:nth-child(4) { animation-delay: 0.48s; transform: translateX(138px); }
+/* Раскрытая рана: тёмный разрыв вокруг светящегося края */
+.evfx--sukuna .evfx__cut::after {
+  content: "";
+  position: absolute;
+  inset: -7px 0;
+  background: linear-gradient(90deg,
+    transparent 0%, rgba(60, 6, 0, 0.55) 14%,
+    rgba(90, 10, 0, 0.62) 50%, rgba(60, 6, 0, 0.55) 86%, transparent 100%);
+  mask-image: linear-gradient(180deg, transparent, #000 42%, transparent 58%, #000 62%, transparent);
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 42%, transparent 58%, #000 62%, transparent);
+  filter: blur(2px);
+}
 
-@keyframes ev-slash {
-  0%, 62%   { opacity: 0; }
-  64%       { opacity: 0.95; }
-  70%       { opacity: 0.25; }
-  76%       { opacity: 0.7; }
-  86%, 100% { opacity: 0; }
+.evfx--sukuna .evfx__cut:nth-of-type(1) { top: 26%; animation-delay: 0s;    }
+.evfx--sukuna .evfx__cut:nth-of-type(2) { top: 40%; animation-delay: 0.07s; }
+.evfx--sukuna .evfx__cut:nth-of-type(3) { top: 55%; animation-delay: 0.14s; }
+.evfx--sukuna .evfx__cut:nth-of-type(4) { top: 70%; animation-delay: 0.21s; }
+
+@keyframes ev-cut {
+  0%       { transform: rotate(-24deg) scaleX(0);    opacity: 0; }
+  1.5%     { opacity: 1; }
+  6%       { transform: rotate(-24deg) scaleX(1);    opacity: 1; }
+  14%      { opacity: 0.55; }
+  26%      { transform: rotate(-24deg) scaleX(1);    opacity: 0.12; }
+  40%, 100%{ transform: rotate(-24deg) scaleX(1);    opacity: 0; }
+}
+
+/* Ударная волна в момент взмаха */
+.evfx--sukuna .evfx__shock {
+  position: absolute;
+  left: 50%;
+  top: 48%;
+  width: 30vmax;
+  aspect-ratio: 1;
+  margin: -15vmax 0 0 -15vmax;
+  border: 2px solid rgba(255, 140, 90, 0.5);
+  border-radius: 50%;
+  opacity: 0;
+  animation: ev-shock 7s ease-out infinite;
+}
+
+@keyframes ev-shock {
+  0%   { transform: scale(0.1); opacity: 0; }
+  4%   { opacity: 0.85; }
+  22%  { transform: scale(2.6); opacity: 0; }
+  100% { transform: scale(2.6); opacity: 0; }
+}
+
+/* Угли: мелкие искры, поднимающиеся снизу */
+.evfx--sukuna .evfx__ember {
+  position: absolute;
+  bottom: -20px;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff3d0 0 30%, #ff7a2b 55%, rgba(255, 60, 0, 0) 78%);
+  animation: ev-ember linear infinite;
+}
+
+@keyframes ev-ember {
+  0%   { transform: translate3d(0, 0, 0) scale(0.6); opacity: 0; }
+  12%  { opacity: 0.95; }
+  70%  { opacity: 0.7; }
+  100% { transform: translate3d(var(--drift, 4vw), -104vh, 0) scale(1.25); opacity: 0; }
 }
 
 .evfx--sukuna .evfx__heat {
-  background: radial-gradient(ellipse at 50% 120%, rgba(255, 70, 20, 0.34), transparent 62%);
+  background:
+    radial-gradient(ellipse at 50% 118%, rgba(255, 70, 20, 0.42), transparent 58%),
+    radial-gradient(ellipse at 50% -18%, rgba(120, 10, 0, 0.35), transparent 52%);
   animation: ev-breathe 3.4s ease-in-out infinite;
 }
 
@@ -191,19 +257,48 @@
   animation: ev-breathe 2.1s ease-in-out 1.05s infinite;
 }
 
-/* Шов посередине — там, где две техники упираются друг в друга */
+/* Шов посередине — там, где две техники упираются друг в друга.
+   Не линейка, а рваная кромка с ядром и разлётом искр. */
 .evfx--duel .evfx__seam {
   position: absolute;
-  top: 0;
-  bottom: 0;
+  top: -4%;
+  bottom: -4%;
   left: 50%;
-  width: 3px;
+  width: 10px;
   transform: translateX(-50%);
   background: linear-gradient(180deg,
-    transparent, rgba(255, 255, 255, 0.9) 12%, rgba(255, 255, 255, 0.35) 50%,
-    rgba(255, 255, 255, 0.9) 88%, transparent);
-  box-shadow: 0 0 18px 4px rgba(255, 255, 255, 0.5);
-  animation: ev-seam 0.9s ease-in-out infinite;
+    transparent 0%, rgba(255, 255, 255, 0.95) 8%,
+    rgba(190, 230, 255, 0.55) 28%, rgba(255, 210, 200, 0.6) 52%,
+    rgba(190, 230, 255, 0.55) 74%, rgba(255, 255, 255, 0.95) 92%, transparent 100%);
+  clip-path: polygon(
+    50% 0%, 100% 4%, 20% 9%, 90% 14%, 30% 19%, 100% 24%, 10% 29%,
+    85% 34%, 25% 39%, 95% 44%, 15% 49%, 90% 54%, 20% 59%, 100% 64%,
+    25% 69%, 85% 74%, 10% 79%, 95% 84%, 30% 89%, 80% 95%, 50% 100%,
+    0% 95%, 60% 89%, 5% 84%, 70% 79%, 0% 74%, 65% 69%, 5% 64%,
+    75% 59%, 0% 54%, 70% 49%, 10% 44%, 60% 39%, 0% 34%, 75% 29%,
+    5% 24%, 65% 19%, 0% 14%, 70% 9%, 0% 4%);
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.9))
+          drop-shadow(0 0 26px rgba(255, 120, 90, 0.5))
+          drop-shadow(0 0 26px rgba(90, 200, 255, 0.5));
+  animation: ev-seam 0.55s steps(2, end) infinite;
+}
+
+/* Искры разлетаются от шва в обе стороны */
+.evfx--duel .evfx__spark {
+  position: absolute;
+  left: 50%;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 6px 2px rgba(255, 255, 255, 0.75);
+  animation: ev-spark linear infinite;
+}
+
+@keyframes ev-spark {
+  0%   { transform: translate3d(0, 0, 0) scale(1); opacity: 0; }
+  8%   { opacity: 1; }
+  100% { transform: translate3d(var(--dx, 20vw), var(--dy, -12vh), 0) scale(0.2); opacity: 0; }
 }
 
 /* Половины дышат навстречу друг другу: перевес то у одной стороны, то у другой */
@@ -218,8 +313,8 @@
 }
 
 @keyframes ev-seam {
-  0%, 100% { opacity: 0.55; transform: translateX(-50%) scaleX(1); }
-  50%      { opacity: 1;    transform: translateX(-50%) scaleX(2.2); }
+  0%, 100% { opacity: 0.7; transform: translateX(-50%) scaleX(1) scaleY(1); }
+  50%      { opacity: 1;   transform: translateX(-50%) scaleX(1.9) scaleY(1.02); }
 }
 
 .evfx--duel .evfx__flash {
@@ -236,29 +331,95 @@
   96%, 100% { opacity: 0; }
 }
 
-/* ---- Парад: фонари шествия поднимаются снизу ---- */
+/* ---- Парад тысячи духов ----
+   Фонари с тёплым ореолом, покачивающиеся на подъёме, следом —
+   бледные духи и низкий туман. Раньше это были ровные кружки.
+   ------------------------------------------------------------ */
 
 .evfx--parade .evfx__lamp {
   position: absolute;
-  bottom: -40px;
+  bottom: -60px;
   width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: radial-gradient(circle, #ffd9a0 0 40%, rgba(255, 160, 60, 0.55) 55%, transparent 72%);
-  filter: blur(0.4px);
+  height: 14px;
+  border-radius: 46% 46% 40% 40%;
+  background: linear-gradient(180deg, #fff0c8 0%, #ffcf7a 45%, #ff9a3c 100%);
+  box-shadow:
+    0 0 10px 3px rgba(255, 190, 110, 0.75),
+    0 0 26px 10px rgba(255, 150, 60, 0.35);
   animation: ev-rise linear infinite;
 }
 
-@keyframes ev-rise {
-  0%   { transform: translateY(0) scale(0.7); opacity: 0; }
-  12%  { opacity: 0.9; }
-  84%  { opacity: 0.75; }
-  100% { transform: translateY(-108vh) scale(1.25); opacity: 0; }
+/* Огонёк внутри фонаря чуть дрожит */
+.evfx--parade .evfx__lamp::after {
+  content: "";
+  position: absolute;
+  inset: 22% 28%;
+  border-radius: 50%;
+  background: #fffdf0;
+  filter: blur(1px);
+  animation: ev-flame 1.6s ease-in-out infinite;
 }
 
+@keyframes ev-flame {
+  0%, 100% { opacity: 0.85; transform: scaleY(1); }
+  50%      { opacity: 1;    transform: scaleY(1.25); }
+}
+
+@keyframes ev-rise {
+  0%   { transform: translate3d(0, 0, 0) scale(0.7); opacity: 0; }
+  10%  { opacity: 0.95; }
+  35%  { transform: translate3d(2vw, -34vh, 0) scale(1); }
+  65%  { transform: translate3d(-1.5vw, -66vh, 0) scale(1.1); opacity: 0.85; }
+  100% { transform: translate3d(1vw, -112vh, 0) scale(1.25); opacity: 0; }
+}
+
+/* Духи: вытянутые бледные силуэты, всплывающие медленнее фонарей */
+.evfx--parade .evfx__wisp {
+  position: absolute;
+  bottom: -80px;
+  width: 26px;
+  height: 46px;
+  border-radius: 50% 50% 46% 46%;
+  background: radial-gradient(ellipse at 50% 34%,
+    rgba(224, 208, 255, 0.55) 0%, rgba(190, 160, 245, 0.22) 46%, transparent 72%);
+  filter: blur(1.5px);
+  animation: ev-wisp linear infinite;
+}
+
+@keyframes ev-wisp {
+  0%   { transform: translate3d(0, 0, 0) scaleY(0.8); opacity: 0; }
+  14%  { opacity: 0.7; }
+  50%  { transform: translate3d(-3vw, -48vh, 0) scaleY(1.1); }
+  100% { transform: translate3d(2vw, -108vh, 0) scaleY(1.3); opacity: 0; }
+}
+
+/* Низкий туман, сквозь который идёт шествие */
 .evfx--parade .evfx__mist {
-  background: radial-gradient(ellipse at 50% 100%, rgba(150, 90, 220, 0.30), transparent 66%);
+  background:
+    radial-gradient(ellipse at 50% 104%, rgba(150, 90, 220, 0.38), transparent 62%),
+    radial-gradient(ellipse at 18% 108%, rgba(90, 60, 190, 0.30), transparent 54%),
+    radial-gradient(ellipse at 82% 108%, rgba(120, 70, 210, 0.28), transparent 54%);
   animation: ev-breathe 5s ease-in-out infinite;
+}
+
+/* Силуэт процессии по нижнему краю */
+.evfx--parade .evfx__march {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 90px;
+  background:
+    repeating-linear-gradient(90deg,
+      rgba(40, 16, 66, 0.55) 0 6px, transparent 6px 12px,
+      rgba(40, 16, 66, 0.42) 12px 16px, transparent 16px 30px,
+      rgba(40, 16, 66, 0.6) 30px 38px, transparent 38px 54px);
+  mask-image: linear-gradient(0deg, #000 18%, transparent 92%);
+  -webkit-mask-image: linear-gradient(0deg, #000 18%, transparent 92%);
+  animation: ev-march 26s linear infinite;
+}
+
+@keyframes ev-march {
+  0%   { background-position-x: 0; }
+  100% { background-position-x: 216px; }
 }
 
 @keyframes ev-breathe {
@@ -354,8 +515,10 @@
 
 /* Кому анимации мешают — остаётся только перекраска */
 @media (prefers-reduced-motion: reduce) {
-  .evfx__slash, .evfx__heat, .evfx__flash, .evfx__half, .evfx__glow,
-  .evfx__seam, .evfx__lamp, .evfx__mist, .ev-badge, .ev-shake {
+  .evfx__cut, .evfx__shock, .evfx__ember, .evfx__heat, .evfx__flash,
+  .evfx__half, .evfx__glow, .evfx__seam, .evfx__spark, .evfx__lamp,
+  .evfx__lamp::after, .evfx__wisp, .evfx__march, .evfx__mist,
+  .ev-badge, .ev-shake {
     animation: none !important;
   }
   .evfx__hail { animation: ev-hail 5.4s linear forwards; }

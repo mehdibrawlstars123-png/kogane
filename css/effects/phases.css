@@ -35,6 +35,9 @@
 
   /* Обводка глифов в светлой теме только портит вид */
   --stroke:      0px;
+
+  /* Тени панелей в светлой теме синеватые, а не чёрные */
+  --shadow-1:    0 8px 24px rgba(24, 74, 120, 0.14);
 }
 
 /* Панель Коганэ становится стеклом: полупрозрачной, с размытием */
@@ -52,16 +55,30 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 
+/* Стекло должно оставаться стеклом, но текст сквозь него читаться не должен.
+   При 0.55 сквозь панель просвечивала афиша, и надписи наслаивались —
+   на телефоне это выглядело как перемешанные строки. */
 :root[data-phase="neutral"] .panel,
 :root[data-phase="neutral"] .tile,
 :root[data-phase="neutral"] .modal__win {
-  background: rgba(255, 255, 255, 0.55);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(16px) saturate(1.15);
+  -webkit-backdrop-filter: blur(16px) saturate(1.15);
+  border: 1px solid rgba(255, 255, 255, 0.9);
   border-radius: 16px;
-  box-shadow: 0 8px 26px rgba(24, 74, 120, 0.12);
+  box-shadow:
+    0 10px 30px rgba(24, 74, 120, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
 }
+
+/* Панель входа стоит поверх афиши — ей нужно быть ещё плотнее */
+:root[data-phase="neutral"] .auth__panel .panel,
+:root[data-phase="neutral"] .joinscr__win {
+  background: rgba(255, 255, 255, 0.93);
+}
+
+/* Сетка на афише не должна проступать сквозь стекло соседней панели */
+:root[data-phase="neutral"] .auth__brand::before { opacity: 0.5; }
 
 :root[data-phase="neutral"] .panel__head {
   background: rgba(255, 255, 255, 0.42);
@@ -104,7 +121,12 @@
   background: radial-gradient(ellipse at 50% 40%, transparent 55%, rgba(90, 150, 200, 0.22));
 }
 
-/* ---------- Небо позади панели ---------- */
+/* ---------- Небо позади панели ----------
+
+   Три слоя облаков с разной скоростью дают глубину: ближние идут
+   быстрее и крупнее, дальние еле ползут. Слева — рассветное солнце
+   с лучами, у горизонта тёплая дымка и силуэт города.
+   ------------------------------------------------------------- */
 
 .sky {
   position: fixed;
@@ -113,52 +135,177 @@
   pointer-events: none;
   overflow: hidden;
   background:
-    linear-gradient(180deg, #4aa3e0 0%, #7ec3ef 38%, #b9e0f7 68%, #e8f6ff 100%);
+    /* тёплый подсвет от солнца слева */
+    radial-gradient(120vh 90vh at 12% 34%, rgba(255, 238, 196, 0.55), transparent 62%),
+    /* сама глубина неба: от густой синевы вверху к светлому горизонту */
+    linear-gradient(178deg,
+      #2f8bd4 0%, #4ea3e2 18%, #79c1ee 42%,
+      #a9dbf6 62%, #d3ecfb 80%, #f3f2e6 100%);
 }
 
-/* Облака: несколько мягких пятен, медленно плывущих поперёк */
+/* Солнце: диск с ореолом. Не круг-заглушка, а именно свет */
+.sky__sun {
+  position: absolute;
+  left: 9%;
+  top: 27%;
+  width: clamp(90px, 13vw, 190px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle,
+      rgba(255, 252, 236, 0.98) 0%,
+      rgba(255, 243, 200, 0.92) 26%,
+      rgba(255, 226, 150, 0.55) 46%,
+      rgba(255, 210, 130, 0.22) 62%,
+      transparent 74%);
+  filter: blur(0.6px);
+  animation: sky-sun 11s ease-in-out infinite;
+}
+
+@keyframes sky-sun {
+  0%, 100% { transform: scale(1);    opacity: 0.92; }
+  50%      { transform: scale(1.06); opacity: 1; }
+}
+
+/* Лучи: широкие мягкие клинья, медленно поворачиваются вокруг солнца */
+.sky__rays {
+  position: absolute;
+  left: 9%;
+  top: 27%;
+  width: clamp(340px, 62vw, 900px);
+  aspect-ratio: 1;
+  transform: translate(-32%, -34%);
+  background: conic-gradient(
+    from 200deg,
+    transparent 0deg 10deg, rgba(255, 246, 214, 0.30) 12deg 17deg,
+    transparent 19deg 34deg, rgba(255, 246, 214, 0.22) 36deg 40deg,
+    transparent 42deg 62deg, rgba(255, 246, 214, 0.26) 64deg 70deg,
+    transparent 72deg 96deg, rgba(255, 246, 214, 0.18) 98deg 103deg,
+    transparent 105deg 360deg);
+  mask-image: radial-gradient(circle, #000 8%, rgba(0, 0, 0, 0.55) 38%, transparent 72%);
+  -webkit-mask-image: radial-gradient(circle, #000 8%, rgba(0, 0, 0, 0.55) 38%, transparent 72%);
+  animation: sky-rays 90s linear infinite;
+}
+
+@keyframes sky-rays {
+  from { rotate: 0deg; }
+  to   { rotate: 360deg; }
+}
+
+/* ---- Облака ----
+   Каждое собрано из нескольких пятен: у настоящего облака плоское
+   основание и рыхлый верх, одним кругом это не передать. */
+
 .sky__cloud {
   position: absolute;
-  border-radius: 50%;
-  background: radial-gradient(circle at 50% 55%,
-    rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.75) 42%, rgba(255, 255, 255, 0) 70%);
-  filter: blur(6px);
+  will-change: transform;
   animation: sky-drift linear infinite;
 }
 
+.sky__cloud i {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 62%,
+    rgba(255, 255, 255, 0.98) 0%,
+    rgba(255, 255, 255, 0.86) 46%,
+    rgba(255, 255, 255, 0) 72%);
+}
+
+/* Нижняя кромка чуть холоднее — облако получает объём */
+.sky__cloud::after {
+  content: "";
+  position: absolute;
+  inset: 42% 6% -6% 6%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 30%,
+    rgba(196, 222, 244, 0.55), rgba(196, 222, 244, 0) 68%);
+}
+
+.sky__cloud--far  { filter: blur(3px); opacity: 0.55; }
+.sky__cloud--mid  { filter: blur(1.6px); opacity: 0.78; }
+.sky__cloud--near { filter: blur(0.6px); opacity: 0.95; }
+
 @keyframes sky-drift {
-  0%   { transform: translateX(-30vw); }
-  100% { transform: translateX(130vw); }
+  0%   { transform: translate3d(-36vw, 0, 0); }
+  100% { transform: translate3d(128vw, 0, 0); }
 }
 
 /* Дальний свет у горизонта — «дышит», как воздух над городом */
 .sky__glow {
   position: absolute;
   inset: auto 0 0 0;
-  height: 42%;
-  background: linear-gradient(0deg, rgba(255, 246, 224, 0.55), transparent 82%);
+  height: 46%;
+  background: linear-gradient(0deg,
+    rgba(255, 244, 214, 0.72) 0%,
+    rgba(255, 238, 205, 0.35) 34%,
+    transparent 88%);
   animation: sky-breathe 9s ease-in-out infinite;
 }
 
 @keyframes sky-breathe {
-  0%, 100% { opacity: 0.55; }
-  50%      { opacity: 0.9; }
+  0%, 100% { opacity: 0.6; }
+  50%      { opacity: 1; }
 }
 
-/* Силуэт города по нижнему краю — как на кадре со сводом правил */
+/* Город: два плана домов, дальний светлее и мельче */
 .sky__city {
   position: absolute;
   inset: auto 0 0 0;
-  height: 12vh;
-  min-height: 60px;
+  height: 16vh;
+  min-height: 78px;
   background:
     repeating-linear-gradient(90deg,
-      rgba(120, 165, 200, 0.55) 0 14px, transparent 14px 22px,
-      rgba(120, 165, 200, 0.40) 22px 30px, transparent 30px 52px,
-      rgba(120, 165, 200, 0.62) 52px 74px, transparent 74px 96px);
-  mask-image: linear-gradient(0deg, #000 30%, transparent 100%);
-  -webkit-mask-image: linear-gradient(0deg, #000 30%, transparent 100%);
-  opacity: 0.65;
+      rgba(96, 146, 190, 0.50) 0 10px, transparent 10px 18px,
+      rgba(96, 146, 190, 0.36) 18px 26px, transparent 26px 44px,
+      rgba(96, 146, 190, 0.58) 44px 62px, transparent 62px 82px);
+  mask-image: linear-gradient(0deg, #000 26%, transparent 100%);
+  -webkit-mask-image: linear-gradient(0deg, #000 26%, transparent 100%);
+  opacity: 0.6;
+}
+
+.sky__city--far {
+  height: 22vh;
+  min-height: 110px;
+  background:
+    repeating-linear-gradient(90deg,
+      rgba(140, 182, 216, 0.34) 0 16px, transparent 16px 30px,
+      rgba(140, 182, 216, 0.24) 30px 40px, transparent 40px 70px,
+      rgba(140, 182, 216, 0.40) 70px 96px, transparent 96px 130px);
+  opacity: 0.45;
+}
+
+/* Стая: несколько точек, лениво пересекающих небо */
+.sky__birds {
+  position: absolute;
+  top: 22%;
+  left: -10%;
+  width: 90px;
+  height: 26px;
+  opacity: 0.5;
+  animation: sky-birds 54s linear infinite;
+}
+
+.sky__birds b {
+  position: absolute;
+  width: 9px;
+  height: 4px;
+  border-top: 1.5px solid rgba(70, 110, 145, 0.85);
+  border-radius: 50%;
+  animation: sky-flap 0.9s ease-in-out infinite;
+}
+
+.sky__birds b:nth-child(2) { left: 18px; top: 9px;  animation-delay: 0.18s; }
+.sky__birds b:nth-child(3) { left: 34px; top: 2px;  animation-delay: 0.36s; }
+.sky__birds b:nth-child(4) { left: 52px; top: 12px; animation-delay: 0.12s; }
+
+@keyframes sky-birds {
+  0%   { transform: translate3d(0, 0, 0); }
+  100% { transform: translate3d(126vw, -8vh, 0); }
+}
+
+@keyframes sky-flap {
+  0%, 100% { transform: scaleY(1); }
+  50%      { transform: scaleY(0.45); }
 }
 
 /* ---------- Подтверждение участия ----------
@@ -242,5 +389,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .sky__cloud, .sky__glow, :root[data-phase="confirm"] .screen::before { animation: none; }
+  .sky__cloud, .sky__glow, .sky__sun, .sky__rays, .sky__birds, .sky__birds b,
+  :root[data-phase="confirm"] .screen::before { animation: none; }
 }

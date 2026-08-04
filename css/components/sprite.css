@@ -63,4 +63,24 @@
 .scroll-list__row span:last-child { margin-left: auto; }
 
 /* Иконка-«лицо» участника в списке (пиксельный человечек) */
-.face { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+.face {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Фигура участника: лёгкая тень под пикселями, чтобы читалась на панели */
+.sprite--figure {
+  filter: drop-shadow(0 1px 0 var(--ink-faint));
+  transition: transform var(--dur-2) var(--ease), opacity var(--dur-2) var(--ease);
+}
+
+.roster__row:hover .sprite--figure,
+.editor__item:hover .sprite--figure { transform: translateY(-1px) scale(1.06); }
+
+/* Выбывший бледнее и чуть накренён — видно с одного взгляда */
+.face--dead .sprite--figure {
+  opacity: 0.72;
+  transform: rotate(-6deg);
+  filter: drop-shadow(0 1px 0 var(--danger-ink));
+}

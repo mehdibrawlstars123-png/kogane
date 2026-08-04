@@ -15,7 +15,33 @@ import { bus, EV } from './bus.js?v=11';
 let applied = null;
 let sky = null;
 
-/** Небо с облаками позади панели — только в нейтральный период */
+/**
+ * Небо позади панели — только в нейтральный период.
+ *
+ * Облака собираются из нескольких пятен и раскладываются по трём планам:
+ * дальний идёт медленно и размыт, ближний крупный и резкий. Так у неба
+ * появляется глубина, а не «кружки едут по фону».
+ */
+function cloud(plan, { top, scale, dur, delay, opacity }) {
+  const el = document.createElement('span');
+  el.className = `sky__cloud sky__cloud--${plan}`;
+  el.style.cssText = `top:${top}%;width:${Math.round(220 * scale)}px;`
+                   + `height:${Math.round(78 * scale)}px;opacity:${opacity};`
+                   + `animation-duration:${dur}s;animation-delay:-${delay}s`;
+
+  // Пятна: длинное основание и два-три «кома» сверху
+  const пятна = [
+    [0, 42, 100, 58],
+    [10, 4, 46, 74],
+    [42, 14, 40, 62],
+    [64, 26, 34, 52],
+  ];
+  el.innerHTML = пятна
+    .map(([x, y, w, h]) => `<i style="left:${x}%;top:${y}%;width:${w}%;height:${h}%"></i>`)
+    .join('');
+  return el;
+}
+
 function buildSky() {
   if (sky) return;
 
@@ -23,22 +49,33 @@ function buildSky() {
   sky.className = 'sky';
   sky.setAttribute('aria-hidden', 'true');
 
-  // Немного облаков разного размера и скорости: на узком экране меньше
-  const count = window.innerWidth < 640 ? 4 : 7;
-  let html = '<div class="sky__glow"></div><div class="sky__city"></div>';
+  sky.innerHTML = '<div class="sky__rays"></div><div class="sky__sun"></div>'
+                + '<div class="sky__city sky__city--far"></div>'
+                + '<div class="sky__glow"></div>'
+                + '<div class="sky__city"></div>'
+                + '<div class="sky__birds"><b></b><b></b><b></b><b></b></div>';
 
-  for (let i = 0; i < count; i += 1) {
-    const w = 180 + Math.round(Math.random() * 320);
-    const h = Math.round(w * (0.32 + Math.random() * 0.2));
-    const top = Math.round(6 + Math.random() * 55);
-    const dur = (46 + Math.random() * 60).toFixed(1);
-    const delay = (Math.random() * 60).toFixed(1);
-    const op = (0.45 + Math.random() * 0.4).toFixed(2);
-    html += `<span class="sky__cloud" style="width:${w}px;height:${h}px;top:${top}%;`
-          + `opacity:${op};animation-duration:${dur}s;animation-delay:-${delay}s"></span>`;
-  }
+  // На узком экране планов меньше: телефону хватает и трёх облаков
+  const тесно = window.innerWidth < 640;
+  const планы = [
+    ['far',  тесно ? 2 : 4, { s: [0.55, 0.8],  d: [150, 210], t: [6, 34] }],
+    ['mid',  тесно ? 2 : 4, { s: [0.85, 1.2],  d: [95, 140],  t: [14, 48] }],
+    ['near', тесно ? 1 : 3, { s: [1.3, 1.9],   d: [58, 88],   t: [30, 62] }],
+  ];
 
-  sky.innerHTML = html;
+  планы.forEach(([plan, count, r]) => {
+    for (let i = 0; i < count; i += 1) {
+      const меж = (a, b) => a + Math.random() * (b - a);
+      sky.appendChild(cloud(plan, {
+        top: Math.round(меж(r.t[0], r.t[1])),
+        scale: меж(r.s[0], r.s[1]),
+        dur: меж(r.d[0], r.d[1]).toFixed(1),
+        delay: (Math.random() * Number(r.d[1])).toFixed(1),
+        opacity: (plan === 'far' ? 0.5 : plan === 'mid' ? 0.75 : 0.95).toFixed(2),
+      }));
+    }
+  });
+
   document.body.prepend(sky);
 }
 

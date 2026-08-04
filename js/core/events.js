@@ -40,25 +40,78 @@ let booted = false;   // первая отрисовка уже прошла
 
 /* ---------------- Слой эффектов ---------------- */
 
-function lamps(count) {
+/** Случайное число в промежутке — для разброса частиц */
+const меж = (a, b) => a + Math.random() * (b - a);
+
+/** Угли Сукуны: искры, поднимающиеся снизу вверх */
+function embers(count) {
   let html = '';
   for (let i = 0; i < count; i += 1) {
-    const left = Math.round((i / count) * 100 + (Math.random() * 6 - 3));
-    const delay = (Math.random() * 9).toFixed(2);
-    const dur = (7 + Math.random() * 7).toFixed(2);
-    const size = 6 + Math.round(Math.random() * 10);
-    html += `<span class="evfx__lamp" style="left:${left}%;width:${size}px;height:${size}px;`
+    const left = Math.round(меж(0, 100));
+    const size = меж(2, 5).toFixed(1);
+    const dur = меж(5, 11).toFixed(1);
+    const delay = меж(0, 11).toFixed(1);
+    const drift = меж(-6, 6).toFixed(1);
+    html += `<span class="evfx__ember" style="left:${left}%;width:${size}px;height:${size}px;`
+          + `--drift:${drift}vw;animation-duration:${dur}s;animation-delay:-${delay}s"></span>`;
+  }
+  return html;
+}
+
+/** Искры на шве столкновения: разлетаются от центра в обе стороны */
+function sparks(count) {
+  let html = '';
+  for (let i = 0; i < count; i += 1) {
+    const влево = i % 2 === 0;
+    const top = Math.round(меж(8, 92));
+    const dx = (меж(8, 34) * (влево ? -1 : 1)).toFixed(1);
+    const dy = меж(-22, 10).toFixed(1);
+    const dur = меж(0.9, 2.2).toFixed(2);
+    const delay = меж(0, 2.4).toFixed(2);
+    html += `<span class="evfx__spark" style="top:${top}%;--dx:${dx}vw;--dy:${dy}vh;`
           + `animation-duration:${dur}s;animation-delay:-${delay}s"></span>`;
   }
   return html;
 }
 
+/** Фонари и духи шествия */
+function lanterns(count) {
+  let html = '';
+  for (let i = 0; i < count; i += 1) {
+    const left = Math.round((i / count) * 100 + меж(-4, 4));
+    const scale = меж(0.7, 1.6);
+    const dur = меж(11, 21).toFixed(1);
+    const delay = меж(0, 20).toFixed(1);
+    html += `<span class="evfx__lamp" style="left:${left}%;`
+          + `width:${(10 * scale).toFixed(1)}px;height:${(14 * scale).toFixed(1)}px;`
+          + `animation-duration:${dur}s;animation-delay:-${delay}s"></span>`;
+  }
+  for (let i = 0; i < Math.ceil(count / 3); i += 1) {
+    const left = Math.round(меж(4, 96));
+    const dur = меж(20, 34).toFixed(1);
+    const delay = меж(0, 30).toFixed(1);
+    const scale = меж(0.8, 1.8).toFixed(2);
+    html += `<span class="evfx__wisp" style="left:${left}%;transform-origin:50% 100%;`
+          + `width:${(26 * scale).toFixed(0)}px;height:${(46 * scale).toFixed(0)}px;`
+          + `animation-duration:${dur}s;animation-delay:-${delay}s"></span>`;
+  }
+  return html;
+}
+
+/** Слои эффекта под конкретное событие */
 function fxMarkup(id) {
+  // На телефоне частиц вдвое меньше: слабым устройствам тяжело,
+  // а на узком экране они всё равно сливаются
+  const тесно = window.innerWidth < 640;
+
   if (id === 'sukuna') {
     return '<div class="evfx__layer evfx__heat"></div>'
-         + '<div class="evfx__slash"></div><div class="evfx__slash"></div>'
-         + '<div class="evfx__slash"></div><div class="evfx__slash"></div>';
+         + '<div class="evfx__shock"></div>'
+         + '<div class="evfx__cut"></div><div class="evfx__cut"></div>'
+         + '<div class="evfx__cut"></div><div class="evfx__cut"></div>'
+         + embers(тесно ? 10 : 22);
   }
+
   if (id === 'duel') {
     // Экран поделён надвое: слева багровая сторона, справа голубая
     return '<div class="evfx__half evfx__half--sukuna"></div>'
@@ -66,12 +119,13 @@ function fxMarkup(id) {
          + '<div class="evfx__glow evfx__glow--sukuna"></div>'
          + '<div class="evfx__glow evfx__glow--gojo"></div>'
          + '<div class="evfx__seam"></div>'
+         + sparks(тесно ? 8 : 18)
          + '<div class="evfx__layer evfx__flash"></div>';
   }
-  // На телефоне фонарей меньше: восемнадцать движущихся точек заметно
-  // греют слабые устройства, а на узком экране они всё равно сливаются
+
   return '<div class="evfx__layer evfx__mist"></div>'
-       + lamps(window.innerWidth < 640 ? 9 : 18);
+       + '<div class="evfx__march"></div>'
+       + lanterns(тесно ? 8 : 16);
 }
 
 /** Объявление о начале — показывается один раз, тем, кто это застал */
